@@ -7,6 +7,9 @@ static var _next_id: int = 1
 var id: int
 var type: int
 var special: int = TileTypes.Special.NONE
+# Candy-Crush wrapped behavior: a primed bomb already blasted once,
+# survives the clear, falls, then detonates again where it lands.
+var detonating: bool = false
 
 
 static func make(type_: int, special_: int = TileTypes.Special.NONE) -> TileState:

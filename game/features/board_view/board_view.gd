@@ -97,6 +97,9 @@ func _play_events(events: Array[BoardEvent]) -> void:
 			BoardEvent.Kind.SWAP_REJECTED:
 				AudioManager.play_sfx(&"tile_reject")
 				await _anim_swap(event.data.a, event.data.b)
+			BoardEvent.Kind.BOMB_PRIMED:
+				AudioManager.play_sfx(&"bomb_primed")
+				await _anim_bomb_primed(event.data.cells)
 			BoardEvent.Kind.CLEARED:
 				AudioManager.play_sfx(&"tile_match")
 				await _anim_clear(event.data.cells)
@@ -139,6 +142,24 @@ func _anim_clear(cells: Array[Vector2i]) -> void:
 	await tween.finished
 	for view in views:
 		view.queue_free()
+
+
+func _anim_bomb_primed(cells: Array[Vector2i]) -> void:
+	var views: Array[TileView] = []
+	for cell in cells:
+		var view: TileView = _tiles.get(cell)
+		if view != null:
+			views.append(view)
+	if views.is_empty():
+		return
+	var grow := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	for view in views:
+		grow.tween_property(view, "scale", Vector2.ONE * 1.25, 0.09)
+	await grow.finished
+	var shrink := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	for view in views:
+		shrink.tween_property(view, "scale", Vector2.ONE, 0.09)
+	await shrink.finished
 
 
 func _anim_special_created(cell: Vector2i, type: int, special: int) -> void:

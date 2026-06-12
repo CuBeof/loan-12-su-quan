@@ -6,6 +6,7 @@ extends RefCounted
 enum Kind {
 	SWAP, # data: a, b (Vector2i)
 	SWAP_REJECTED, # data: a, b — view swaps back
+	BOMB_PRIMED, # data: cells — bombs that blasted once and await their second blast
 	CLEARED, # data: cells (Array[Vector2i]), counts (type -> int)
 	SPECIAL_CREATED, # data: cell, type, special
 	TRANSFORMED, # data: changes (Array of {cell, special})

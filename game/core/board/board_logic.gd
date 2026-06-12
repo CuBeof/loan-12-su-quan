@@ -12,6 +12,9 @@ var grid: Dictionary = {} # Vector2i -> TileState
 var rng := RandomNumberGenerator.new()
 var refill_enabled: bool = true # tests disable to keep boards deterministic
 
+var _pending_bombs: Array[TileState] = [] # primed bombs awaiting their second blast
+var _pending_blasts: Array[Dictionary] = [] # delayed area blasts: {center, radius}
+
 
 func init_shape(board_size: Vector2i, blocked: Array[Vector2i] = []) -> void:
 	size = board_size
@@ -45,8 +48,7 @@ func try_move(a: Vector2i, b: Vector2i) -> MoveResult:
 		result.valid = true
 		result.add(BoardEvent.Kind.SWAP, {"a": a, "b": b})
 		_execute_combo(a, b, result)
-		apply_gravity(result)
-		_cascade(result)
+		_settle(result)
 		_ensure_moves(result)
 		return result
 
@@ -62,10 +64,26 @@ func try_move(a: Vector2i, b: Vector2i) -> MoveResult:
 	result.valid = true
 	result.add(BoardEvent.Kind.SWAP, {"a": a, "b": b})
 	_clear_groups(groups, result)
-	apply_gravity(result)
-	_cascade(result)
+	_settle(result)
 	_ensure_moves(result)
 	return result
+
+
+## Gravity, delayed bomb blasts and cascade matches, until the board is stable.
+func _settle(result: MoveResult) -> void:
+	apply_gravity(result)
+	var guard := 0
+	while guard < MAX_CASCADES:
+		guard += 1
+		if not _pending_bombs.is_empty() or not _pending_blasts.is_empty():
+			_detonate_pending(result)
+			apply_gravity(result)
+			continue
+		var groups := MatchFinder.find_groups(grid)
+		if groups.is_empty():
+			break
+		_clear_groups(groups, result)
+		apply_gravity(result)
 
 
 func apply_gravity(result: MoveResult) -> void:
@@ -116,15 +134,31 @@ func _swap_tiles(a: Vector2i, b: Vector2i) -> void:
 	grid[b] = tmp
 
 
-func _cascade(result: MoveResult) -> void:
-	var guard := 0
-	while guard < MAX_CASCADES:
-		var groups := MatchFinder.find_groups(grid)
-		if groups.is_empty():
-			break
-		_clear_groups(groups, result)
-		apply_gravity(result)
-		guard += 1
+## Second blasts of primed bombs (at their post-fall positions) and any
+## queued delayed area blasts (bomb + bomb combo).
+func _detonate_pending(result: MoveResult) -> void:
+	var initial: Array[Vector2i] = []
+	for tile in _pending_bombs:
+		var cell := _find_tile_cell(tile)
+		if cell.x >= 0:
+			initial.append(cell)
+	_pending_bombs.clear()
+	for blast in _pending_blasts:
+		var center: Vector2i = blast.center
+		var radius: int = blast.radius
+		for cell: Vector2i in grid.keys():
+			if absi(cell.x - center.x) <= radius and absi(cell.y - center.y) <= radius:
+				initial.append(cell)
+	_pending_blasts.clear()
+	if not initial.is_empty():
+		_clear_cells(initial, result)
+
+
+func _find_tile_cell(tile: TileState) -> Vector2i:
+	for cell: Vector2i in grid.keys():
+		if grid[cell] == tile:
+			return cell
+	return Vector2i(-1, -1)
 
 
 func _clear_groups(groups: Array, result: MoveResult) -> void:
@@ -134,16 +168,38 @@ func _clear_groups(groups: Array, result: MoveResult) -> void:
 		if group.max_run > 3:
 			result.extra_turn = true
 		if group.special != TileTypes.Special.NONE:
-			specials.append({"cell": group.special_cell, "type": group.type, "special": group.special})
+			specials.append({
+				"cell": group.special_cell,
+				"type": group.type,
+				"special": group.special,
+				"cells": group.cells,
+			})
 		initial.append_array(group.cells)
 	_clear_cells(initial, result)
 	for entry in specials:
-		grid[entry.cell] = TileState.make(entry.type, entry.special)
-		result.add(BoardEvent.Kind.SPECIAL_CREATED, entry)
+		var cell: Vector2i = entry.cell
+		if grid.has(cell):
+			# Occupied by a primed bomb that survived the clear: fall back
+			# to another cell of the match that did get cleared.
+			cell = Vector2i(-1, -1)
+			for alt: Vector2i in entry.cells:
+				if not grid.has(alt):
+					cell = alt
+					break
+			if cell.x < 0:
+				continue
+		grid[cell] = TileState.make(entry.type, entry.special)
+		result.add(BoardEvent.Kind.SPECIAL_CREATED, {"cell": cell, "type": entry.type, "special": entry.special})
 
 
 func _clear_cells(initial: Array[Vector2i], result: MoveResult) -> void:
-	var cleared := SpecialResolver.expand_clears(grid, initial)
+	var outcome := SpecialResolver.expand_clears(grid, initial, rng)
+	var primed: Array[Vector2i] = outcome.primed
+	if not primed.is_empty():
+		for cell in primed:
+			_pending_bombs.append(grid[cell])
+		result.add(BoardEvent.Kind.BOMB_PRIMED, {"cells": primed})
+	var cleared: Array[Vector2i] = outcome.cleared
 	var counts := {}
 	for cell in cleared:
 		var tile: TileState = grid[cell]
@@ -165,9 +221,14 @@ func _execute_combo(a: Vector2i, b: Vector2i, result: MoveResult) -> void:
 		var t_cell := a if tile_a.special == TileTypes.Special.TRANSFORM else b
 		var o_cell := b if t_cell == a else a
 		var other: TileState = grid[o_cell]
+		# The transform tile is consumed by the combo itself; neutralize it
+		# so expand_clears doesn't trigger a passive random-type zap on top.
+		var t_tile: TileState = grid[t_cell]
+		t_tile.special = TileTypes.Special.NONE
 		match other.special:
 			TileTypes.Special.TRANSFORM:
-				# Undefined in SPEC: clear the whole board (see DESIGN.md).
+				# Candy Crush: color bomb + color bomb clears the whole board.
+				other.special = TileTypes.Special.NONE
 				var all_cells: Array[Vector2i] = []
 				for cell: Vector2i in grid.keys():
 					all_cells.append(cell)
@@ -206,22 +267,22 @@ func _execute_combo(a: Vector2i, b: Vector2i, result: MoveResult) -> void:
 
 	var cells: Array[Vector2i] = []
 	if both_bomb:
-		# SPEC: bomb + bomb grants an extra turn and a bigger blast (5x5).
+		# Candy Crush: two big blasts (5x5, second one after refill);
+		# SPEC adds the extra turn.
 		result.extra_turn = true
+		_pending_blasts.append({"center": b, "radius": 2})
 		for cell: Vector2i in grid.keys():
 			if absi(cell.x - b.x) <= 2 and absi(cell.y - b.y) <= 2:
 				cells.append(cell)
 	elif both_sweep:
-		# Undefined in SPEC: cross clear, one row + one column (see DESIGN.md).
+		# Candy Crush: cross clear, one row + one column.
 		for cell: Vector2i in grid.keys():
 			if cell.y == b.y or cell.x == b.x:
 				cells.append(cell)
 	else:
-		# BOMB + SWEEP: clear 2 rows and 2 columns around the swap (see DESIGN.md).
-		var rows: Array[int] = [b.y, a.y if a.y != b.y else mini(b.y + 1, size.y - 1)]
-		var cols: Array[int] = [b.x, a.x if a.x != b.x else mini(b.x + 1, size.x - 1)]
+		# Candy Crush: bomb + sweeper = giant cross, 3 rows + 3 columns.
 		for cell: Vector2i in grid.keys():
-			if cell.y in rows or cell.x in cols:
+			if absi(cell.y - b.y) <= 1 or absi(cell.x - b.x) <= 1:
 				cells.append(cell)
 	_clear_cells(cells, result)
 

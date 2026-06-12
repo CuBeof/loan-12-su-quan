@@ -58,14 +58,22 @@ Ba hướng đã bàn:
 2. **Tông màu**: sử thi nghiêm trang hay dân gian tươi sáng phiêu lưu?
 3. **Mức độ bám sử**: bám sát (đúng tên, đúng vùng 12 sứ quân) hay phóng tác tự do (thêm thần thoại Long/Lân/Quy/Phụng, quái vật dân gian)?
 
-## Quyết định gameplay tạm thời (bản chơi được đầu tiên)
+## Cơ chế match-3: theo Candy Crush (ĐÃ CHỐT)
 
-Các diễn giải tạm trong code, sẽ rà lại khi cân bằng:
+Đã chốt với chủ dự án (2026-06-12): cơ chế ghép và viên đặc biệt bám theo Candy Crush, cộng các luật riêng từ SPEC. Hiện trạng trong code:
 
-- **Hướng viên quét**: ghép 4 ngang → quét **dọc** (cột), ghép 4 dọc → quét **ngang** (hàng) — theo quy ước Candy Crush. SPEC chỉ nói "tùy cách ghép".
-- **Viên nổ**: bản đầu nổ 3×3 **ngay tại vị trí** khi bị ăn. SPEC mô tả nổ trễ sau khi viên rơi xuống vị trí cuối — sẽ nâng cấp sau (TODO).
-- **Nổ + quét**: quét 2 hàng và 2 cột quanh điểm ghép (SPEC: "2 hàng hoặc 2 cột" — sẽ tinh chỉnh theo hướng viên quét).
-- **Quét + quét**: SPEC chưa định nghĩa → tạm xử lý quét chữ thập (1 hàng + 1 cột).
-- **Biến đổi + biến đổi**: SPEC chưa định nghĩa → tạm xóa toàn bàn cờ.
-- **Thêm lượt**: chỉ khi có một hàng/cột thẳng > 3 viên (ghép L/T 3+3 không tính), và khi ghép nổ + nổ (theo SPEC).
-- **Hệ số "chỉ số ×x"** của ghép 5 / nổ + nổ: chưa áp dụng (chờ lớp chiến đấu).
+| Tình huống | Hành vi (đã cài đặt) | Nguồn |
+| :--- | :--- | :--- |
+| Ghép 4 ngang / dọc | Viên quét dọc / ngang (ngược hướng ghép) | Candy Crush |
+| Ghép L/T | Viên nổ; **nổ 3×3 hai lần** — nổ khi kích hoạt, sống sót, rơi xuống rồi nổ tiếp tại vị trí đáp | Candy Crush + SPEC (nổ trễ) |
+| Ghép 5 thẳng | Viên biến đổi (color bomb) | Candy Crush + SPEC |
+| Biến đổi + viên thường | Ăn toàn bộ viên cùng loại | Candy Crush + SPEC |
+| Biến đổi + quét | Mọi viên cùng loại → viên quét hướng ngẫu nhiên, kích hoạt hết | Candy Crush + SPEC |
+| Biến đổi + nổ | Mọi viên cùng loại → viên nổ, kích hoạt hết (nổ kép từng viên) | **SPEC** (Candy Crush gốc khác: zap 1 màu 2 đợt) |
+| Biến đổi + biến đổi | Xóa toàn bàn cờ | Candy Crush |
+| Biến đổi trúng blast gián tiếp | Tự kích hoạt: ăn toàn bộ một loại **ngẫu nhiên** | Candy Crush |
+| Nổ + nổ | Nổ 5×5 **hai đợt** (đợt 2 sau khi viên mới rơi) + **thêm lượt** | Candy Crush + SPEC (thêm lượt) |
+| Nổ + quét | Chữ thập lớn: 3 hàng + 3 cột | Candy Crush |
+| Quét + quét | Chữ thập: 1 hàng + 1 cột | Candy Crush |
+| Thêm lượt | Hàng/cột thẳng > 3 viên (L/T 3+3 không tính), và nổ + nổ | SPEC |
+| Hệ số "chỉ số ×x" (ghép 5, nổ + nổ) | Chưa áp dụng — chờ lớp chiến đấu (Giai đoạn 2) | SPEC |

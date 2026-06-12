@@ -134,7 +134,9 @@ func test_sweeper_in_match_clears_whole_row() -> void:
 	check_eq(int(result.cleared_counts.get(TY.ENERGY, 0)), 1, "1 viên năng lượng trong hàng")
 
 
-func test_bomb_in_match_clears_3x3() -> void:
+## Candy Crush wrapped: the bomb blasts 3x3, survives, falls, then
+## blasts 3x3 again where it lands before disappearing.
+func test_bomb_in_match_detonates_twice() -> void:
 	var board := make_board([
 		"aheha",
 		"hahah",
@@ -145,10 +147,24 @@ func test_bomb_in_match_clears_3x3() -> void:
 	bomb.special = SP.BOMB
 	var result := board.try_move(Vector2i(1, 3), Vector2i(1, 2))
 	check(result.valid, "swap phải hợp lệ")
-	check_eq(result.total_cleared(), 7, "viên nổ phải ăn match 3 + vùng 3x3 quanh nó")
-	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 3, "3 viên vàng")
-	check_eq(int(result.cleared_counts.get(TY.HEALTH, 0)), 2, "2 viên máu trong vùng nổ")
-	check_eq(int(result.cleared_counts.get(TY.ATTACK, 0)), 2, "2 viên tấn công trong vùng nổ")
+	check_eq(result.total_cleared(), 9, "nổ kép phải ăn 9 viên (6 đợt 1 + 3 đợt 2)")
+	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 3, "3 viên vàng (2 match + viên nổ)")
+	check_eq(int(result.cleared_counts.get(TY.HEALTH, 0)), 3, "3 viên máu qua hai đợt nổ")
+	check_eq(int(result.cleared_counts.get(TY.ATTACK, 0)), 3, "3 viên tấn công qua hai đợt nổ")
+	var primed_events := 0
+	var cleared_events := 0
+	for event in result.events:
+		if event.kind == BoardEvent.Kind.BOMB_PRIMED:
+			primed_events += 1
+		elif event.kind == BoardEvent.Kind.CLEARED:
+			cleared_events += 1
+	check_eq(primed_events, 1, "phải có đúng 1 event BOMB_PRIMED")
+	check_eq(cleared_events, 2, "phải có đúng 2 đợt CLEARED")
+	for cell: Vector2i in board.grid.keys():
+		var tile: TileState = board.grid[cell]
+		if tile.special == SP.BOMB:
+			failures.append("viên nổ vẫn còn trên bàn sau khi nổ kép")
+			return
 
 
 func test_transform_swapped_with_normal_clears_all_of_type() -> void:
@@ -178,7 +194,7 @@ func test_bomb_plus_bomb_grants_extra_turn_and_5x5() -> void:
 	check_eq(result.total_cleared(), 12, "vụ nổ 5x5 phải phủ toàn bàn 4x3")
 
 
-func test_bomb_plus_sweeper_clears_two_rows_and_columns() -> void:
+func test_bomb_plus_sweeper_clears_giant_cross() -> void:
 	var board := make_board([
 		"ahaha",
 		"hahah",
@@ -190,8 +206,51 @@ func test_bomb_plus_sweeper_clears_two_rows_and_columns() -> void:
 	board.grid[Vector2i(2, 3)] = TileState.make(TY.ENERGY, SP.SWEEP_H)
 	var result := board.try_move(Vector2i(2, 2), Vector2i(2, 3))
 	check(result.valid, "nổ + quét phải hợp lệ")
-	# 2 rows (y=2,3) + 2 columns (x=2,3) on 5x5 = 10 + 10 - 4 overlap = 16
-	check_eq(result.total_cleared(), 16, "nổ + quét phải ăn 2 hàng và 2 cột")
+	# Candy Crush giant cross centered (2,3): rows 2-4 + cols 1-3 on 5x5
+	# = 15 + 15 - 9 overlap = 21
+	check_eq(result.total_cleared(), 21, "nổ + quét phải ăn 3 hàng và 3 cột")
+
+
+func test_sweeper_plus_sweeper_clears_cross() -> void:
+	var board := make_board([
+		"ahaha",
+		"hahah",
+		"ahaha",
+		"hahah",
+		"ahaha",
+	])
+	board.grid[Vector2i(2, 2)] = TileState.make(TY.GOLD, SP.SWEEP_H)
+	board.grid[Vector2i(2, 3)] = TileState.make(TY.ENERGY, SP.SWEEP_V)
+	var result := board.try_move(Vector2i(2, 2), Vector2i(2, 3))
+	check(result.valid, "quét + quét phải hợp lệ")
+	check(not result.extra_turn, "quét + quét không thêm lượt")
+	# First CLEARED event: cross = row 3 (5 cells) + column 2 (5 cells) - 1 overlap
+	check_eq(result.events[1].kind, BoardEvent.Kind.CLEARED, "event thứ 2 phải là CLEARED")
+	var first_cleared: Array[Vector2i] = result.events[1].data.cells
+	check_eq(first_cleared.size(), 9, "chữ thập phải ăn 1 hàng + 1 cột = 9 ô")
+
+
+## Candy Crush: a color bomb caught in a blast activates passively,
+## consuming every tile of one random type.
+func test_transform_hit_by_blast_activates() -> void:
+	var board := make_board([
+		"aheha",
+		"hahah",
+		"gaghe",
+		"hgeha",
+	])
+	var sweeper: TileState = board.grid[Vector2i(0, 2)]
+	sweeper.special = SP.SWEEP_H
+	var transform: TileState = board.grid[Vector2i(4, 2)]
+	transform.special = SP.TRANSFORM
+	var result := board.try_move(Vector2i(1, 3), Vector2i(1, 2))
+	check(result.valid, "swap phải hợp lệ")
+	check(result.total_cleared() >= 5, "ít nhất cả hàng quét phải bị ăn")
+	for cell: Vector2i in board.grid.keys():
+		var tile: TileState = board.grid[cell]
+		if tile.special == SP.TRANSFORM:
+			failures.append("viên biến đổi phải bị tiêu thụ khi trúng blast")
+			return
 
 
 func test_dead_board_gets_reshuffled() -> void:
@@ -234,6 +293,9 @@ func test_random_play_keeps_board_consistent() -> void:
 				return
 			if not MatchFinder.find_groups(board.grid).is_empty():
 				failures.append("ván %d nước %d: còn match chưa xử lý sau khi nước đi kết thúc" % [game, move_index])
+				return
+			if not board._pending_bombs.is_empty() or not board._pending_blasts.is_empty():
+				failures.append("ván %d nước %d: còn vụ nổ chờ chưa xử lý sau khi settle" % [game, move_index])
 				return
 
 
