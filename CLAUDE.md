@@ -18,12 +18,17 @@ Game **match-3 RPG offline** theo lượt (người chơi vs AI) cho **Android**
 # Import asset + kiểm tra script lỗi (chạy sau khi thêm file mới)
 godot --headless --path game --import
 
-# Chạy unit test headless (gdUnit4)
-godot --headless --path game -s addons/gdUnit4/bin/GdUnitCmdTool.gd -a tests/
+# Chạy unit test headless (runner tự viết, exit code 1 khi fail)
+godot --headless --path game -s res://tests/run_tests.gd
+
+# Smoke test: khởi động main scene 60 frame để bắt lỗi runtime
+godot --headless --path game --quit-after 60
 
 # Chạy game (khi có môi trường đồ họa)
 godot --path game
 ```
+
+Suite test mới thêm vào mảng `SUITES` trong `game/tests/run_tests.gd`, kế thừa `BoardTestBase` (`game/tests/test_base.gd`).
 
 ## Kiến trúc — ranh giới bắt buộc
 

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TileCatalog" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://data/tiles/tile_catalog.gd" id="1_cat"]
+[ext_resource type="Resource" path="res://data/tiles/attack.tres" id="2_atk"]
+[ext_resource type="Resource" path="res://data/tiles/health.tres" id="3_hp"]
+[ext_resource type="Resource" path="res://data/tiles/gold.tres" id="4_gld"]
+[ext_resource type="Resource" path="res://data/tiles/energy.tres" id="5_nrg"]
+[ext_resource type="Resource" path="res://data/tiles/exp.tres" id="6_exp"]
+
+[resource]
+script = ExtResource("1_cat")
+attack = ExtResource("2_atk")
+health = ExtResource("3_hp")
+gold = ExtResource("4_gld")
+energy = ExtResource("5_nrg")
+experience = ExtResource("6_exp")
