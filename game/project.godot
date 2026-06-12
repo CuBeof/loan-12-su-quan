@@ -7,13 +7,20 @@ config_version=5
 [application]
 
 config/name="Loan 12 Su Quan"
-run/main_scene="res://features/battle_screen/battle_screen.tscn"
+run/main_scene="res://features/main_menu/main_menu.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 
 [autoload]
 
 EventBus="*res://common/autoload/event_bus.gd"
+Settings="*res://common/autoload/settings_manager.gd"
+GameState="*res://common/autoload/game_state.gd"
+SceneManager="*res://common/autoload/scene_manager.gd"
 AudioManager="*res://common/autoload/audio_manager.gd"
+
+[audio]
+
+buses/default_bus_layout="res://audio/default_bus_layout.tres"
 
 [debug]
 

@@ -320,6 +320,41 @@ func test_random_play_keeps_board_consistent() -> void:
 				return
 
 
+func test_find_hint_returns_a_legal_resolving_move() -> void:
+	var board := BoardLogic.new()
+	board.setup(Vector2i(8, 8), 3)
+	var hint := board.find_hint()
+	check(not hint.is_empty(), "a fresh playable board must offer a hint")
+	if hint.is_empty():
+		return
+	var legal := MoveGenerator.find_moves(board.grid)
+	var found := false
+	for move in legal:
+		if move.a == hint.a and move.b == hint.b:
+			found = true
+	check(found, "the hint must be one of the legal moves")
+	var tile_a: TileState = board.grid[hint.a]
+	var tile_b: TileState = board.grid[hint.b]
+	if not MoveGenerator.is_special_combo(tile_a, tile_b):
+		board._swap_tiles(hint.a, hint.b)
+		check(not MatchFinder.find_groups(board.grid).is_empty(), "the hinted swap must create a match")
+		board._swap_tiles(hint.a, hint.b)
+	check(hint.cells.size() >= 2, "the hint must highlight at least the swapped pair")
+
+
+func test_find_hint_prefers_the_largest_match() -> void:
+	# Swapping the central 'h' (2,0) with the 'a' below it (2,1) turns row 0
+	# into a 5-line of 'a' — a stronger move than any plain 3-match.
+	var board := make_board([
+		"aahaa",
+		"hhahh",
+		"aahaa",
+	])
+	var hint := board.find_hint()
+	check(not hint.is_empty(), "hint must exist")
+	check(hint.cells.size() >= 4, "hint should pick the move clearing the most tiles")
+
+
 func test_gravity_compacts_columns() -> void:
 	var board := BoardLogic.new()
 	board.init_shape(Vector2i(3, 3))

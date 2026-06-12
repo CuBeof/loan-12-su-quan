@@ -10,9 +10,29 @@ UI_RETREAT,Retreat,Rút lui
 UI_VICTORY,Victory!,Chiến thắng!
 UI_DEFEAT,Defeat...,Thất bại...
 UI_PLAY_AGAIN,Play again,Chơi lại
+UI_CONTINUE,Continue,Tiếp tục
+UI_BACK,Back,Trở về
 UI_REWARDS,Gold +%d   XP +%d,Vàng +%d   KN +%d
+GAME_TITLE,The Twelve Warlords,Loạn 12 Sứ Quân
+MENU_CONTINUE,Continue,Tiếp tục
+MENU_NEW_GAME,New Game,Chơi mới
+MENU_SETTINGS,Settings,Cài đặt
+MENU_INFO,Info,Thông tin
+INFO_BODY,An offline match-3 RPG set in 10th-century Vietnam during the anarchy of the twelve warlords. Placeholder text.,Game nhập vai match-3 offline lấy bối cảnh loạn 12 sứ quân thế kỷ 10. Nội dung tạm thời.
+SETTINGS_TAB_AUDIO,Audio,Âm thanh
+SETTINGS_TAB_EXPERIENCE,Experience,Trải nghiệm
+SETTINGS_MASTER,Game sound,Âm thanh game
+SETTINGS_MUSIC,Music,Nhạc nền
+SETTINGS_SFX,Sound effects,Hiệu ứng âm thanh
+SETTINGS_HINT_DELAY,Hint delay (seconds),Thời gian gợi ý (giây)
+SETTINGS_EFFECT_SPEED,Effect speed,Tốc độ hiệu ứng
+MAP_TITLE,Campaign,Hành trình
+MAP_HOME,Home,Quê nhà
+MAP_BANDIT_CAMP,Bandit Camp,Trại cướp
+MAP_WARLORD_KEEP,Warlord Keep,Thành sứ quân
 COMBATANT_HERO,Hero,Anh hùng
 COMBATANT_BANDIT,Bandit,Tên cướp
+COMBATANT_WARLORD,Warlord,Sứ quân
 TILE_ATTACK,Attack,Tấn công
 TILE_HEALTH,Health,Máu
 TILE_GOLD,Gold,Vàng

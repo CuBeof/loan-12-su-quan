@@ -17,9 +17,10 @@ const OVERSHOOT_FACTOR := 0.18 # how far past the target a gem falls before boun
 
 @export var catalog: TileCatalog
 @export var rng_seed: int = 0 # 0 = random each run
+@export var hint_delay: float = 5.0 # idle seconds before suggesting a move
 
 var logic: BoardLogic
-var input_enabled: bool = true # battle controller disables this during the enemy turn
+var input_enabled: bool = true: set = _set_input_enabled # disabled during the enemy turn
 
 var _tiles: Dictionary = {} # Vector2i -> TileView
 var _cell_px: float = 64.0
@@ -29,14 +30,36 @@ var _selected := Vector2i(-1, -1)
 var _touch_cell := Vector2i(-1, -1)
 var _touch_start := Vector2.ZERO
 var _dragging: bool = false
+var _speed: float = 1.0 # effect-speed multiplier from Settings
+var _hint_timer: Timer
+var _hint_cells: Array[Vector2i] = []
+var _hint_tween: Tween
 
 
 func _ready() -> void:
 	logic = BoardLogic.new()
 	var seed_value := rng_seed if rng_seed != 0 else int(randi())
 	logic.setup(Vector2i(8, 8), seed_value)
+	_hint_timer = Timer.new()
+	_hint_timer.one_shot = true
+	add_child(_hint_timer)
+	_hint_timer.timeout.connect(_show_hint)
+	_apply_settings()
+	EventBus.settings_changed.connect(_apply_settings)
 	resized.connect(_relayout)
 	_relayout()
+	_kick_idle()
+
+
+## Scales an animation duration by the player's effect-speed setting.
+func _dur(seconds: float) -> float:
+	return seconds / _speed
+
+
+func _apply_settings() -> void:
+	hint_delay = Settings.hint_delay
+	_speed = maxf(0.25, Settings.effect_speed)
+	_kick_idle()
 
 
 ## Plays a move programmatically (enemy AI) through the same pipeline
@@ -52,6 +75,7 @@ func _gui_input(event: InputEvent) -> void:
 		var touch := event as InputEventScreenTouch
 		var cell := _pos_to_cell(touch.position)
 		if touch.pressed:
+			_kick_idle() # any interaction resets the hint countdown
 			if not logic.grid.has(cell):
 				_set_selection(Vector2i(-1, -1))
 				return
@@ -93,12 +117,72 @@ func _attempt_move(a: Vector2i, b: Vector2i) -> void:
 	if result.events.is_empty():
 		return
 	_busy = true
+	_clear_hint()
 	await _play_events(result.events)
 	_busy = false
 	if result.valid:
 		move_resolved.emit(result)
 	else:
 		move_rejected.emit(result)
+	_kick_idle()
+
+
+# --- Idle hint system ---------------------------------------------------
+
+func _set_input_enabled(value: bool) -> void:
+	input_enabled = value
+	if value:
+		_kick_idle()
+	else:
+		_stop_idle()
+
+
+## Restarts the idle countdown after clearing any visible hint.
+func _kick_idle() -> void:
+	_clear_hint()
+	if _hint_timer != null and input_enabled and not _busy and logic != null:
+		_hint_timer.start(maxf(1.0, hint_delay))
+
+
+func _stop_idle() -> void:
+	_clear_hint()
+	if _hint_timer != null:
+		_hint_timer.stop()
+
+
+func _clear_hint() -> void:
+	if _hint_tween != null:
+		_hint_tween.kill()
+		_hint_tween = null
+	for cell in _hint_cells:
+		var view: TileView = _tiles.get(cell)
+		if view != null:
+			view.scale = Vector2.ONE
+	_hint_cells.clear()
+
+
+func _show_hint() -> void:
+	if _busy or not input_enabled or logic == null:
+		return
+	var hint := logic.find_hint()
+	if hint.is_empty():
+		return
+	_hint_cells.clear()
+	for cell: Vector2i in hint.cells:
+		if _tiles.has(cell):
+			_hint_cells.append(cell)
+	if _hint_cells.is_empty():
+		return
+	_hint_tween = create_tween().set_loops()
+	_hint_tween.tween_method(_apply_hint_scale, 1.0, 1.18, 0.45).set_trans(Tween.TRANS_SINE)
+	_hint_tween.tween_method(_apply_hint_scale, 1.18, 1.0, 0.45).set_trans(Tween.TRANS_SINE)
+
+
+func _apply_hint_scale(value: float) -> void:
+	for cell in _hint_cells:
+		var view: TileView = _tiles.get(cell)
+		if view != null:
+			view.scale = Vector2.ONE * value
 
 
 func _play_events(events: Array[BoardEvent]) -> void:
@@ -135,8 +219,8 @@ func _anim_swap(a: Vector2i, b: Vector2i) -> void:
 	_tiles[a] = view_b
 	_tiles[b] = view_a
 	var tween := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(view_a, "position", _cell_to_pos(b), SWAP_TIME)
-	tween.tween_property(view_b, "position", _cell_to_pos(a), SWAP_TIME)
+	tween.tween_property(view_a, "position", _cell_to_pos(b), _dur(SWAP_TIME))
+	tween.tween_property(view_b, "position", _cell_to_pos(a), _dur(SWAP_TIME))
 	await tween.finished
 
 
@@ -151,7 +235,7 @@ func _anim_clear(cells: Array[Vector2i]) -> void:
 		return
 	var tween := create_tween().set_parallel(true).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	for view in views:
-		tween.tween_property(view, "scale", Vector2.ZERO, CLEAR_TIME)
+		tween.tween_property(view, "scale", Vector2.ZERO, _dur(CLEAR_TIME))
 	await tween.finished
 	for view in views:
 		view.queue_free()
@@ -167,11 +251,11 @@ func _anim_bomb_primed(cells: Array[Vector2i]) -> void:
 		return
 	var grow := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	for view in views:
-		grow.tween_property(view, "scale", Vector2.ONE * 1.25, 0.09)
+		grow.tween_property(view, "scale", Vector2.ONE * 1.25, _dur(0.09))
 	await grow.finished
 	var shrink := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	for view in views:
-		shrink.tween_property(view, "scale", Vector2.ONE, 0.09)
+		shrink.tween_property(view, "scale", Vector2.ONE, _dur(0.09))
 	await shrink.finished
 
 
@@ -179,7 +263,7 @@ func _anim_special_created(cell: Vector2i, type: int, special: int) -> void:
 	var view := _create_tile_view(cell, type, special)
 	view.scale = Vector2.ZERO
 	var tween := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(view, "scale", Vector2.ONE, POP_TIME)
+	tween.tween_property(view, "scale", Vector2.ONE, _dur(POP_TIME))
 	await tween.finished
 
 
@@ -188,7 +272,7 @@ func _anim_transformed(changes: Array[Dictionary]) -> void:
 		var view: TileView = _tiles.get(change.cell)
 		if view != null:
 			view.set_special(change.special)
-	await get_tree().create_timer(POP_TIME).timeout
+	await get_tree().create_timer(_dur(POP_TIME)).timeout
 
 
 func _anim_gravity(falls: Array[Dictionary], spawns: Array[Dictionary]) -> void:
@@ -225,25 +309,27 @@ func _anim_gravity(falls: Array[Dictionary], spawns: Array[Dictionary]) -> void:
 ## back up like a raindrop. Returns the total animation time.
 func _drop_tile(view: TileView, target: Vector2, delay: float) -> float:
 	var distance := view.position.distance_to(target) / _cell_px
-	var fall_time := maxf(0.12, FALL_TIME_PER_CELL * distance)
+	var fall_time := _dur(maxf(0.12, FALL_TIME_PER_CELL * distance))
+	var bounce_time := _dur(BOUNCE_TIME)
+	var staggered := _dur(delay)
 	var overshoot := target + Vector2(0.0, _cell_px * OVERSHOOT_FACTOR)
 	var tween := create_tween()
-	if delay > 0.0:
-		tween.tween_interval(delay)
+	if staggered > 0.0:
+		tween.tween_interval(staggered)
 	tween.tween_property(view, "position", overshoot, fall_time) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tween.tween_property(view, "position", target, BOUNCE_TIME) \
+	tween.tween_property(view, "position", target, bounce_time) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	return delay + fall_time + BOUNCE_TIME
+	return staggered + fall_time + bounce_time
 
 
 func _anim_shuffle(layout: Dictionary) -> void:
 	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 0.2)
+	tween.tween_property(self, "modulate:a", 0.0, _dur(0.2))
 	await tween.finished
 	_rebuild_from_layout(layout)
 	var tween_in := create_tween()
-	tween_in.tween_property(self, "modulate:a", 1.0, 0.2)
+	tween_in.tween_property(self, "modulate:a", 1.0, _dur(0.2))
 	await tween_in.finished
 
 
@@ -252,7 +338,10 @@ func _rebuild_all() -> void:
 
 
 func _rebuild_from_layout(layout: Dictionary) -> void:
+	_clear_hint()
 	for child in get_children():
+		if child == _hint_timer:
+			continue
 		child.queue_free()
 	_tiles.clear()
 	for cell: Vector2i in layout.keys():

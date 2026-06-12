@@ -86,6 +86,13 @@ Yêu cầu: dự án phải chạy được bằng placeholder ngay từ đầu,
 4. **Một điểm gán duy nhất**: toàn bộ slot asset nằm trong `game/data/**.tres` và `SoundBank`. Designer chỉ cần mở các file này để gắn asset.
 5. Resource gắn vào instance riêng (chỉ số quái…) phải `duplicate()` hoặc bật Local to Scene — tránh bug share chung resource (lỗi #1 của Godot 4).
 
+## Trạng thái hiện tại (cập nhật 2026-06-12)
+
+- ✅ **Giai đoạn 0–2** xong: khung dự án, lõi match-3 (chuẩn Candy Crush), lớp chiến đấu theo lượt với AI ngẫu nhiên.
+- 🔄 **Giai đoạn 5** một phần: main menu, settings (tab âm thanh + trải nghiệm), bản đồ chiến dịch (đồ thị node), info; điều hướng qua `SceneManager` (fade + back stack + nút Back Android). Flow hoàn chỉnh: Menu → Bản đồ → Trận đấu → Bản đồ.
+- ➕ **Gợi ý nước đi**: sau `Settings.hint_delay` giây idle, bàn cờ nhấp nháy nước đi tốt nhất (`BoardLogic.find_hint`). Tốc độ hiệu ứng cũng điều khiển bằng `Settings.effect_speed`.
+- ⏳ Còn lại: AI thật (GĐ3), hệ thống RPG meta (GĐ4), save/load (GĐ6), polish + xuất Android (GĐ7).
+
 ## 5. Lộ trình theo giai đoạn
 
 ### Giai đoạn 0 — Khung dự án

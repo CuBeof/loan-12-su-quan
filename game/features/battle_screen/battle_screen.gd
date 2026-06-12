@@ -25,12 +25,16 @@ var _turns: TurnManager
 
 
 func _ready() -> void:
+	# Prefer the matchup chosen on the map; fall back to the exported
+	# defaults so the scene still runs standalone (F6).
+	var player := GameState.player_def if GameState.player_def != null else player_def
+	var enemy := GameState.current_enemy if GameState.current_enemy != null else enemy_def
 	_turns = TurnManager.new()
-	_turns.setup(_make_state(player_def), _make_state(enemy_def), randi())
-	_player_panel.setup(player_def)
-	_enemy_panel.setup(enemy_def)
+	_turns.setup(_make_state(player), _make_state(enemy), randi())
+	_player_panel.setup(player)
+	_enemy_panel.setup(enemy)
 	_retreat_button.text = tr(&"UI_RETREAT")
-	_play_again_button.text = tr(&"UI_PLAY_AGAIN")
+	_play_again_button.text = tr(&"UI_CONTINUE")
 	_board.move_resolved.connect(_on_move_resolved)
 	_board.move_rejected.connect(_on_move_rejected)
 	_retreat_button.pressed.connect(_on_retreat_pressed)
@@ -109,6 +113,9 @@ func _refresh() -> void:
 func _end_battle() -> void:
 	_board.input_enabled = false
 	var player_won := _turns.outcome == TurnManager.Outcome.PLAYER_WON
+	GameState.last_battle_won = player_won
+	if player_won:
+		GameState.mark_node_cleared(GameState.current_node)
 	_result_label.text = tr(&"UI_VICTORY") if player_won else tr(&"UI_DEFEAT")
 	_rewards_label.visible = player_won
 	if player_won:
@@ -124,4 +131,5 @@ func _on_retreat_pressed() -> void:
 
 
 func _on_play_again_pressed() -> void:
-	get_tree().reload_current_scene()
+	# Return to the map (or to the menu when launched standalone).
+	SceneManager.back()

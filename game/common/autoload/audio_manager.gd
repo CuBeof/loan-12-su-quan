@@ -15,6 +15,7 @@ func _ready() -> void:
 	_bank = load(_BANK_PATH) as SoundBank
 	for i in range(_POOL_SIZE):
 		var player := AudioStreamPlayer.new()
+		player.bus = &"SFX"
 		add_child(player)
 		_players.append(player)
 

@@ -118,6 +118,39 @@ func apply_gravity(result: MoveResult) -> void:
 		result.add(BoardEvent.Kind.GRAVITY, {"falls": falls, "spawns": spawns})
 
 
+## Returns a hint move {a, b, cells} where `cells` are the tiles to
+## highlight, or {} if the board has no legal move. Picks the move that
+## clears the most tiles so the suggestion feels worthwhile.
+func find_hint() -> Dictionary:
+	var best: Dictionary = {}
+	var best_score := -1
+	for move in MoveGenerator.find_moves(grid):
+		var a: Vector2i = move.a
+		var b: Vector2i = move.b
+		var tile_a: TileState = grid[a]
+		var tile_b: TileState = grid[b]
+		var cells: Array[Vector2i] = []
+		var score := 0
+		if MoveGenerator.is_special_combo(tile_a, tile_b):
+			# Special combos always pay off — rank them above plain matches.
+			score = 100
+			cells = [a, b]
+		else:
+			_swap_tiles(a, b)
+			var groups := MatchFinder.find_groups(grid)
+			_swap_tiles(a, b)
+			for group: MatchFinder.MatchGroup in groups:
+				if a in group.cells or b in group.cells:
+					cells.append_array(group.cells)
+					score += group.cells.size()
+			if cells.is_empty():
+				continue
+		if score > best_score:
+			best_score = score
+			best = {"a": a, "b": b, "cells": cells}
+	return best
+
+
 func snapshot() -> Dictionary:
 	var layout := {}
 	for cell: Vector2i in grid.keys():
