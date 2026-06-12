@@ -11,6 +11,11 @@ extends PanelContainer
 @onready var _energy_bar: ProgressBar = %EnergyBar
 @onready var _energy_text: Label = %EnergyText
 
+# Kept so we can kill a running tween before starting a new one — two
+# tweens on the same property otherwise fight and flicker.
+var _bars_tween: Tween
+var _flash_tween: Tween
+
 
 func setup(def: CombatantDefinition) -> void:
 	_name_label.text = tr(def.display_name_key)
@@ -22,15 +27,20 @@ func setup(def: CombatantDefinition) -> void:
 func refresh(state: CombatantState) -> void:
 	_hp_bar.max_value = state.max_hp
 	_energy_bar.max_value = state.max_energy
-	var tween := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(_hp_bar, "value", state.hp, 0.25)
-	tween.tween_property(_energy_bar, "value", state.energy, 0.25)
+	if _bars_tween != null:
+		_bars_tween.kill()
+	_bars_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_bars_tween.tween_property(_hp_bar, "value", state.hp, 0.25)
+	_bars_tween.tween_property(_energy_bar, "value", state.energy, 0.25)
 	_hp_text.text = "%d/%d" % [state.hp, state.max_hp]
 	_energy_text.text = "%d/%d" % [state.energy, state.max_energy]
 
 
 ## Brief tint to signal damage (red) or heal (green).
 func flash(color: Color) -> void:
-	var tween := create_tween()
-	tween.tween_property(self, "modulate", color, 0.08)
-	tween.tween_property(self, "modulate", Color.WHITE, 0.25)
+	if _flash_tween != null:
+		_flash_tween.kill()
+	modulate = Color.WHITE
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(self, "modulate", color, 0.08)
+	_flash_tween.tween_property(self, "modulate", Color.WHITE, 0.25)
