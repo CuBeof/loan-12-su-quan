@@ -60,7 +60,7 @@ Ba hướng đã bàn:
 
 ## Cơ chế match-3: theo Candy Crush (ĐÃ CHỐT)
 
-Đã chốt với chủ dự án (2026-06-12): cơ chế ghép và viên đặc biệt bám theo Candy Crush, cộng các luật riêng từ SPEC. Hiện trạng trong code:
+Đã chốt với chủ dự án (2026-06-12): cơ chế ghép và viên đặc biệt bám theo Candy Crush, cộng các luật riêng từ SPEC. **Bảng luật chính thức nằm trong SPEC.md (nguồn chân lý)** — bảng dưới đây chỉ ghi chú nguồn gốc từng luật:
 
 | Tình huống | Hành vi (đã cài đặt) | Nguồn |
 | :--- | :--- | :--- |

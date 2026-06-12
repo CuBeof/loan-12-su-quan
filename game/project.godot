@@ -31,6 +31,11 @@ window/stretch/aspect="expand"
 
 pointing/emulate_touch_from_mouse=true
 
+[internationalization]
+
+locale/translations=PackedStringArray("res://i18n/translations.en.translation", "res://i18n/translations.vi.translation")
+locale/fallback="en"
+
 [rendering]
 
 renderer/rendering_method="mobile"

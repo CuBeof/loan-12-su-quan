@@ -6,7 +6,7 @@ Chỉ dẫn cho Claude Code khi làm việc trong repo này.
 
 Game **match-3 RPG offline** theo lượt (người chơi vs AI) cho **Android**, làm bằng **Godot 4.6 / GDScript**. Tên dự án: Loạn 12 Sứ Quân.
 
-- [SPEC.md](SPEC.md) — đặc tả gameplay, luật ghép, các màn hình. Là nguồn chân lý về thiết kế; khi spec và code lệch nhau, hỏi lại user.
+- [SPEC.md](SPEC.md) — đặc tả gameplay, luật ghép, các màn hình. Là nguồn chân lý về thiết kế; khi spec và code lệch nhau, hỏi lại user. **Cơ chế ghép và viên đặc biệt theo chuẩn Candy Crush** — bảng luật đầy đủ trong mục "Cơ chế" của SPEC; mỗi dòng luật phải có unit test tương ứng.
 - [PLAN.md](PLAN.md) — kế hoạch kỹ thuật, kiến trúc, lộ trình giai đoạn, ma trận viên đặc biệt.
 - `game/` — project Godot chính (toàn bộ code mới đặt ở đây).
 - `example/` — game match-3 mẫu hoàn chỉnh, **chỉ để tham khảo** cách làm tween/âm thanh/hiệu ứng. KHÔNG copy cấu hình của nó (nó dùng Forward+; dự án chính phải dùng renderer Mobile). Không sửa thư mục này.
@@ -57,6 +57,13 @@ Asset hình ảnh/âm thanh sẽ được thiết kế và gán sau, nên:
 3. Âm thanh phát theo khóa: `AudioManager.play_sfx(&"key")` tra `SoundBank` resource. 3 audio bus: `Master / Music / SFX` (khớp tab cài đặt âm thanh trong SPEC).
 4. Gán asset thật = chỉnh file `.tres` trong `game/data/` và `SoundBank` — không sửa code. Khi thêm definition mới, luôn chừa sẵn slot asset.
 5. Resource gắn vào instance cần state riêng (chỉ số quái…): `duplicate()` trong `_ready()` hoặc bật Local to Scene. Không sửa `.tres` trực tiếp lúc runtime.
+
+## Ngôn ngữ & đa ngôn ngữ (i18n)
+
+- **Comment code, tên biến, message lỗi/cảnh báo, nội dung game: tiếng Anh.** Tài liệu markdown (SPEC/PLAN/DESIGN) giữ tiếng Việt.
+- **Không hardcode text hiển thị cho người chơi.** Mọi chuỗi UI đi qua khóa dịch: `tr(&"UI_TURN")`, khai báo trong `game/i18n/translations.csv` (cột `en` mặc định, `vi`). File `.translation` do import sinh ra, không commit.
+- Resource definition lưu **khóa dịch** (`display_name_key: StringName`), không lưu chuỗi thô.
+- Thêm ngôn ngữ mới = thêm cột vào CSV + thêm đường dẫn `.translation` vào `internationalization/locale/translations` trong project.godot.
 
 ## Quy ước code
 

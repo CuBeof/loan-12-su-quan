@@ -70,19 +70,9 @@ Nguyên tắc then chốt:
 - Kiểm tra match/điều kiện thắng chỉ chạy **khi có nước đi**, không chạy trong `_process`.
 - Input cảm ứng dùng `InputEventScreenTouch`/`InputEventScreenDrag` (không dùng sự kiện chuột), hitbox ô cờ rộng rãi, swipe-to-swap.
 
-### Ma trận viên đặc biệt (từ SPEC, cần test bảng luật đầy đủ)
+### Ma trận viên đặc biệt
 
-| Cách ghép | Kết quả |
-| :--- | :--- |
-| Ghép 3 | Ăn 3 viên, cộng hiệu ứng theo loại tile |
-| Ghép > 3 trên một hàng | Thêm lượt đi |
-| Ghép 4 | Tạo **viên quét** cùng loại — quét ngang/dọc theo hướng ghép |
-| Ghép 5 | Chỉ số mỗi viên ×x, tạo **viên biến đổi** — ghép với viên bất kỳ sẽ ăn toàn bộ viên cùng loại, có xác suất rơi đồ |
-| Ghép chữ L/T | Tạo **viên nổ** — nổ 3×3 tại vị trí cuối sau khi viên mới rơi xuống |
-| Nổ + Nổ | Thêm lượt, chỉ số vụ nổ ×x |
-| Nổ + Quét | Quét 2 hàng hoặc 2 cột |
-| Biến đổi + Nổ | Mọi viên cùng loại → viên nổ |
-| Biến đổi + Quét | Mọi viên cùng loại → viên quét hướng ngẫu nhiên |
+Luật đã chốt theo **chuẩn Candy Crush** — bảng chi tiết nằm trong [SPEC.md](SPEC.md) mục "Cơ chế" (nguồn chân lý); [DESIGN.md](DESIGN.md) ghi chú nguồn gốc từng luật. Mỗi dòng luật có unit test tương ứng trong `game/tests/`.
 
 Hiệu ứng theo loại tile: tấn công (trừ máu địch), máu (hồi máu, một số nhân vật overheal thành buff), năng lượng (dùng skill), vàng (tích sau trận nếu thắng; địch có thể cướp/tiêu), kinh nghiệm (lên cấp sau trận; địch có thể dùng cường hóa trong trận).
 

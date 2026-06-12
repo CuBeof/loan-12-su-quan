@@ -1,6 +1,6 @@
 extends BoardTestBase
 ## Unit tests for the pure board logic. Each rule row of the special-tile
-## matrix in PLAN.md gets at least one test here.
+## matrix in SPEC.md gets at least one test here.
 
 const SP := TileTypes.Special
 const TY := TileTypes.Type
@@ -10,9 +10,9 @@ func test_setup_has_no_initial_match_and_has_moves() -> void:
 	for seed_value in range(1, 11):
 		var board := BoardLogic.new()
 		board.setup(Vector2i(8, 8), seed_value)
-		check(MatchFinder.find_groups(board.grid).is_empty(), "seed %d: có match sẵn sau setup" % seed_value)
-		check(not MoveGenerator.find_moves(board.grid).is_empty(), "seed %d: không có nước đi nào" % seed_value)
-		check_eq(board.grid.size(), 64, "seed %d: bàn cờ chưa đầy" % seed_value)
+		check(MatchFinder.find_groups(board.grid).is_empty(), "seed %d: board has a pre-made match after setup" % seed_value)
+		check(not MoveGenerator.find_moves(board.grid).is_empty(), "seed %d: board has no possible move" % seed_value)
+		check_eq(board.grid.size(), 64, "seed %d: board is not fully filled" % seed_value)
 
 
 func test_setup_is_deterministic_per_seed() -> void:
@@ -24,7 +24,7 @@ func test_setup_is_deterministic_per_seed() -> void:
 		var tile_a: TileState = board_a.grid[cell]
 		var tile_b: TileState = board_b.grid[cell]
 		if tile_a.type != tile_b.type:
-			failures.append("cùng seed nhưng khác bàn cờ tại %s" % str(cell))
+			failures.append("same seed produced different boards at %s" % str(cell))
 			return
 
 
@@ -32,27 +32,27 @@ func test_blocked_cells_stay_empty() -> void:
 	var blocked: Array[Vector2i] = [Vector2i(0, 0), Vector2i(3, 3)]
 	var board := BoardLogic.new()
 	board.setup(Vector2i(4, 4), 7, blocked)
-	check(not board.grid.has(Vector2i(0, 0)), "ô bị chặn (0,0) vẫn có tile")
-	check(not board.grid.has(Vector2i(3, 3)), "ô bị chặn (3,3) vẫn có tile")
-	check_eq(board.grid.size(), 14, "số tile sai trên bàn cờ có ô chặn")
+	check(not board.grid.has(Vector2i(0, 0)), "blocked cell (0,0) still holds a tile")
+	check(not board.grid.has(Vector2i(3, 3)), "blocked cell (3,3) still holds a tile")
+	check_eq(board.grid.size(), 14, "wrong tile count on a board with blocked cells")
 
 
 func test_non_adjacent_move_is_invalid() -> void:
 	var board := make_board(["ahah", "haha", "ahah"])
 	var result := board.try_move(Vector2i(0, 0), Vector2i(2, 0))
-	check(not result.valid, "nước đi không kề nhau phải bị từ chối")
-	check(result.events.is_empty(), "nước đi không kề nhau không được sinh event")
+	check(not result.valid, "non-adjacent move must be rejected")
+	check(result.events.is_empty(), "non-adjacent move must produce no events")
 
 
 func test_swap_without_match_is_rejected_and_reverted() -> void:
 	var board := make_board(["ahah", "haha", "ahah"])
 	var before := board.snapshot()
 	var result := board.try_move(Vector2i(0, 0), Vector2i(1, 0))
-	check(not result.valid, "swap không tạo match phải invalid")
-	check_eq(result.events.size(), 2, "phải có đúng 2 event SWAP + SWAP_REJECTED")
-	check_eq(result.events[1].kind, BoardEvent.Kind.SWAP_REJECTED, "event thứ 2 phải là SWAP_REJECTED")
+	check(not result.valid, "swap without a match must be invalid")
+	check_eq(result.events.size(), 2, "exactly 2 events expected: SWAP + SWAP_REJECTED")
+	check_eq(result.events[1].kind, BoardEvent.Kind.SWAP_REJECTED, "second event must be SWAP_REJECTED")
 	var after := board.snapshot()
-	check_eq(after, before, "bàn cờ phải trở về như cũ sau swap hỏng")
+	check_eq(after, before, "board must revert after a rejected swap")
 
 
 func test_match3_clears_and_tallies() -> void:
@@ -63,10 +63,10 @@ func test_match3_clears_and_tallies() -> void:
 		"hgeha",
 	])
 	var result := board.try_move(Vector2i(1, 3), Vector2i(1, 2))
-	check(result.valid, "swap tạo match-3 phải hợp lệ")
-	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 3, "phải ăn đúng 3 viên vàng")
-	check(not result.extra_turn, "match-3 không được thêm lượt")
-	check(not board.grid.has(Vector2i(1, 0)), "cột 1 phải trống ô trên cùng sau khi rơi (refill tắt)")
+	check(result.valid, "swap creating a match-3 must be valid")
+	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 3, "exactly 3 gold tiles must be cleared")
+	check(not result.extra_turn, "match-3 must not grant an extra turn")
+	check(not board.grid.has(Vector2i(1, 0)), "column 1 top cell must be empty after falling (refill off)")
 
 
 func test_match4_horizontal_creates_sweeper_and_extra_turn() -> void:
@@ -77,14 +77,14 @@ func test_match4_horizontal_creates_sweeper_and_extra_turn() -> void:
 		"heghae",
 	])
 	var result := board.try_move(Vector2i(2, 3), Vector2i(2, 2))
-	check(result.valid, "swap tạo match-4 phải hợp lệ")
-	check(result.extra_turn, "match-4 phải được thêm lượt")
-	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 4, "phải ăn đúng 4 viên vàng")
+	check(result.valid, "swap creating a match-4 must be valid")
+	check(result.extra_turn, "match-4 must grant an extra turn")
+	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 4, "exactly 4 gold tiles must be cleared")
 	var special_tile: TileState = board.grid.get(Vector2i(2, 2))
-	check(special_tile != null, "phải có viên đặc biệt tại ô swap")
+	check(special_tile != null, "a special tile must appear at the swap cell")
 	if special_tile != null:
-		check_eq(special_tile.special, SP.SWEEP_V, "ghép 4 ngang phải tạo viên quét dọc")
-		check_eq(special_tile.type, TY.GOLD, "viên quét phải cùng loại vàng")
+		check_eq(special_tile.special, SP.SWEEP_V, "horizontal match-4 must create a vertical sweeper")
+		check_eq(special_tile.type, TY.GOLD, "the sweeper must keep the gold type")
 
 
 func test_match5_creates_transformer() -> void:
@@ -95,11 +95,11 @@ func test_match5_creates_transformer() -> void:
 		"heheae",
 	])
 	var result := board.try_move(Vector2i(2, 1), Vector2i(2, 2))
-	check(result.valid, "swap tạo match-5 phải hợp lệ")
-	check(result.extra_turn, "match-5 phải được thêm lượt")
-	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 5, "phải ăn đúng 5 viên vàng")
+	check(result.valid, "swap creating a match-5 must be valid")
+	check(result.extra_turn, "match-5 must grant an extra turn")
+	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 5, "exactly 5 gold tiles must be cleared")
 	var special_tile: TileState = board.grid.get(Vector2i(2, 2))
-	check(special_tile != null and special_tile.special == SP.TRANSFORM, "ghép 5 phải tạo viên biến đổi")
+	check(special_tile != null and special_tile.special == SP.TRANSFORM, "match-5 must create a transform tile")
 
 
 func test_l_shape_creates_bomb_without_extra_turn() -> void:
@@ -110,11 +110,11 @@ func test_l_shape_creates_bomb_without_extra_turn() -> void:
 		"hgeah",
 	])
 	var result := board.try_move(Vector2i(1, 3), Vector2i(1, 2))
-	check(result.valid, "swap tạo hình L phải hợp lệ")
-	check(not result.extra_turn, "hình L (3+3) không được thêm lượt")
-	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 5, "hình L phải ăn 5 viên")
+	check(result.valid, "swap creating an L-shape must be valid")
+	check(not result.extra_turn, "L-shape (3+3) must not grant an extra turn")
+	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 5, "L-shape must clear 5 tiles")
 	var special_tile: TileState = board.grid.get(Vector2i(1, 2))
-	check(special_tile != null and special_tile.special == SP.BOMB, "hình L phải tạo viên nổ")
+	check(special_tile != null and special_tile.special == SP.BOMB, "L-shape must create a bomb")
 
 
 func test_sweeper_in_match_clears_whole_row() -> void:
@@ -127,11 +127,11 @@ func test_sweeper_in_match_clears_whole_row() -> void:
 	var sweeper: TileState = board.grid[Vector2i(0, 2)]
 	sweeper.special = SP.SWEEP_H
 	var result := board.try_move(Vector2i(1, 3), Vector2i(1, 2))
-	check(result.valid, "swap phải hợp lệ")
-	check_eq(result.total_cleared(), 5, "viên quét ngang phải ăn cả hàng 5 ô")
-	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 3, "3 viên vàng trong hàng")
-	check_eq(int(result.cleared_counts.get(TY.HEALTH, 0)), 1, "1 viên máu trong hàng")
-	check_eq(int(result.cleared_counts.get(TY.ENERGY, 0)), 1, "1 viên năng lượng trong hàng")
+	check(result.valid, "swap must be valid")
+	check_eq(result.total_cleared(), 5, "horizontal sweeper must clear the whole 5-cell row")
+	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 3, "3 gold tiles in the row")
+	check_eq(int(result.cleared_counts.get(TY.HEALTH, 0)), 1, "1 health tile in the row")
+	check_eq(int(result.cleared_counts.get(TY.ENERGY, 0)), 1, "1 energy tile in the row")
 
 
 ## Candy Crush wrapped: the bomb blasts 3x3, survives, falls, then
@@ -146,11 +146,11 @@ func test_bomb_in_match_detonates_twice() -> void:
 	var bomb: TileState = board.grid[Vector2i(0, 2)]
 	bomb.special = SP.BOMB
 	var result := board.try_move(Vector2i(1, 3), Vector2i(1, 2))
-	check(result.valid, "swap phải hợp lệ")
-	check_eq(result.total_cleared(), 9, "nổ kép phải ăn 9 viên (6 đợt 1 + 3 đợt 2)")
-	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 3, "3 viên vàng (2 match + viên nổ)")
-	check_eq(int(result.cleared_counts.get(TY.HEALTH, 0)), 3, "3 viên máu qua hai đợt nổ")
-	check_eq(int(result.cleared_counts.get(TY.ATTACK, 0)), 3, "3 viên tấn công qua hai đợt nổ")
+	check(result.valid, "swap must be valid")
+	check_eq(result.total_cleared(), 9, "double blast must clear 9 tiles (6 first + 3 second)")
+	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 3, "3 gold tiles (2 matched + the bomb)")
+	check_eq(int(result.cleared_counts.get(TY.HEALTH, 0)), 3, "3 health tiles across both blasts")
+	check_eq(int(result.cleared_counts.get(TY.ATTACK, 0)), 3, "3 attack tiles across both blasts")
 	var primed_events := 0
 	var cleared_events := 0
 	for event in result.events:
@@ -158,12 +158,12 @@ func test_bomb_in_match_detonates_twice() -> void:
 			primed_events += 1
 		elif event.kind == BoardEvent.Kind.CLEARED:
 			cleared_events += 1
-	check_eq(primed_events, 1, "phải có đúng 1 event BOMB_PRIMED")
-	check_eq(cleared_events, 2, "phải có đúng 2 đợt CLEARED")
+	check_eq(primed_events, 1, "exactly 1 BOMB_PRIMED event expected")
+	check_eq(cleared_events, 2, "exactly 2 CLEARED waves expected")
 	for cell: Vector2i in board.grid.keys():
 		var tile: TileState = board.grid[cell]
 		if tile.special == SP.BOMB:
-			failures.append("viên nổ vẫn còn trên bàn sau khi nổ kép")
+			failures.append("bomb still on the board after its double blast")
 			return
 
 
@@ -175,9 +175,9 @@ func test_transform_swapped_with_normal_clears_all_of_type() -> void:
 	])
 	board.grid[Vector2i(0, 0)] = TileState.make(TY.GOLD, SP.TRANSFORM)
 	var result := board.try_move(Vector2i(0, 0), Vector2i(0, 1))
-	check(result.valid, "biến đổi + viên thường phải hợp lệ")
-	check_eq(int(result.cleared_counts.get(TY.HEALTH, 0)), 6, "phải ăn toàn bộ 6 viên máu")
-	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 1, "viên biến đổi cũng bị tiêu thụ")
+	check(result.valid, "transform + normal tile must be valid")
+	check_eq(int(result.cleared_counts.get(TY.HEALTH, 0)), 6, "all 6 health tiles must be cleared")
+	check_eq(int(result.cleared_counts.get(TY.GOLD, 0)), 1, "the transform tile must be consumed too")
 
 
 func test_bomb_plus_bomb_grants_extra_turn_and_5x5() -> void:
@@ -189,9 +189,9 @@ func test_bomb_plus_bomb_grants_extra_turn_and_5x5() -> void:
 	board.grid[Vector2i(1, 1)] = TileState.make(TY.GOLD, SP.BOMB)
 	board.grid[Vector2i(2, 1)] = TileState.make(TY.ENERGY, SP.BOMB)
 	var result := board.try_move(Vector2i(1, 1), Vector2i(2, 1))
-	check(result.valid, "nổ + nổ phải hợp lệ")
-	check(result.extra_turn, "nổ + nổ phải thêm lượt")
-	check_eq(result.total_cleared(), 12, "vụ nổ 5x5 phải phủ toàn bàn 4x3")
+	check(result.valid, "bomb + bomb must be valid")
+	check(result.extra_turn, "bomb + bomb must grant an extra turn")
+	check_eq(result.total_cleared(), 12, "the 5x5 blast must cover the whole 4x3 board")
 
 
 func test_bomb_plus_sweeper_clears_giant_cross() -> void:
@@ -205,10 +205,10 @@ func test_bomb_plus_sweeper_clears_giant_cross() -> void:
 	board.grid[Vector2i(2, 2)] = TileState.make(TY.GOLD, SP.BOMB)
 	board.grid[Vector2i(2, 3)] = TileState.make(TY.ENERGY, SP.SWEEP_H)
 	var result := board.try_move(Vector2i(2, 2), Vector2i(2, 3))
-	check(result.valid, "nổ + quét phải hợp lệ")
+	check(result.valid, "bomb + sweeper must be valid")
 	# Candy Crush giant cross centered (2,3): rows 2-4 + cols 1-3 on 5x5
 	# = 15 + 15 - 9 overlap = 21
-	check_eq(result.total_cleared(), 21, "nổ + quét phải ăn 3 hàng và 3 cột")
+	check_eq(result.total_cleared(), 21, "bomb + sweeper must clear 3 rows and 3 columns")
 
 
 func test_sweeper_plus_sweeper_clears_cross() -> void:
@@ -222,12 +222,12 @@ func test_sweeper_plus_sweeper_clears_cross() -> void:
 	board.grid[Vector2i(2, 2)] = TileState.make(TY.GOLD, SP.SWEEP_H)
 	board.grid[Vector2i(2, 3)] = TileState.make(TY.ENERGY, SP.SWEEP_V)
 	var result := board.try_move(Vector2i(2, 2), Vector2i(2, 3))
-	check(result.valid, "quét + quét phải hợp lệ")
-	check(not result.extra_turn, "quét + quét không thêm lượt")
+	check(result.valid, "sweeper + sweeper must be valid")
+	check(not result.extra_turn, "sweeper + sweeper must not grant an extra turn")
 	# First CLEARED event: cross = row 3 (5 cells) + column 2 (5 cells) - 1 overlap
-	check_eq(result.events[1].kind, BoardEvent.Kind.CLEARED, "event thứ 2 phải là CLEARED")
+	check_eq(result.events[1].kind, BoardEvent.Kind.CLEARED, "second event must be CLEARED")
 	var first_cleared: Array[Vector2i] = result.events[1].data.cells
-	check_eq(first_cleared.size(), 9, "chữ thập phải ăn 1 hàng + 1 cột = 9 ô")
+	check_eq(first_cleared.size(), 9, "the cross must clear 1 row + 1 column = 9 cells")
 
 
 ## Candy Crush: a color bomb caught in a blast activates passively,
@@ -244,12 +244,12 @@ func test_transform_hit_by_blast_activates() -> void:
 	var transform: TileState = board.grid[Vector2i(4, 2)]
 	transform.special = SP.TRANSFORM
 	var result := board.try_move(Vector2i(1, 3), Vector2i(1, 2))
-	check(result.valid, "swap phải hợp lệ")
-	check(result.total_cleared() >= 5, "ít nhất cả hàng quét phải bị ăn")
+	check(result.valid, "swap must be valid")
+	check(result.total_cleared() >= 5, "at least the swept row must be cleared")
 	for cell: Vector2i in board.grid.keys():
 		var tile: TileState = board.grid[cell]
 		if tile.special == SP.TRANSFORM:
-			failures.append("viên biến đổi phải bị tiêu thụ khi trúng blast")
+			failures.append("the transform tile must be consumed when hit by a blast")
 			return
 
 
@@ -264,10 +264,10 @@ func test_dead_board_gets_reshuffled() -> void:
 	var result := MoveResult.new()
 	board._ensure_moves(result)
 	if MoveGenerator.find_moves(board.grid).is_empty():
-		failures.append("sau xáo trộn vẫn không có nước đi")
-	check(not result.events.is_empty(), "bàn cờ chết phải sinh event SHUFFLED")
+		failures.append("still no possible move after reshuffle")
+	check(not result.events.is_empty(), "a dead board must emit a SHUFFLED event")
 	if not result.events.is_empty():
-		check_eq(result.events[0].kind, BoardEvent.Kind.SHUFFLED, "event phải là SHUFFLED")
+		check_eq(result.events[0].kind, BoardEvent.Kind.SHUFFLED, "the event must be SHUFFLED")
 
 
 ## Fuzz: plays hundreds of random valid moves; catches crashes and
@@ -281,21 +281,21 @@ func test_random_play_keeps_board_consistent() -> void:
 		for move_index in range(100):
 			var moves := MoveGenerator.find_moves(board.grid)
 			if moves.is_empty():
-				failures.append("ván %d nước %d: hết nước đi dù đã có cơ chế xáo trộn" % [game, move_index])
+				failures.append("game %d move %d: no moves left despite the reshuffle mechanism" % [game, move_index])
 				return
 			var move: Dictionary = moves[fuzz_rng.randi_range(0, moves.size() - 1)]
 			var result := board.try_move(move.a, move.b)
 			if not result.valid:
-				failures.append("ván %d nước %d: nước đi do MoveGenerator tìm ra lại bị từ chối" % [game, move_index])
+				failures.append("game %d move %d: a move found by MoveGenerator was rejected" % [game, move_index])
 				return
 			if board.grid.size() != 64:
-				failures.append("ván %d nước %d: bàn cờ còn %d/64 ô sau refill" % [game, move_index, board.grid.size()])
+				failures.append("game %d move %d: board has %d/64 cells after refill" % [game, move_index, board.grid.size()])
 				return
 			if not MatchFinder.find_groups(board.grid).is_empty():
-				failures.append("ván %d nước %d: còn match chưa xử lý sau khi nước đi kết thúc" % [game, move_index])
+				failures.append("game %d move %d: unresolved match left after the move finished" % [game, move_index])
 				return
 			if not board._pending_bombs.is_empty() or not board._pending_blasts.is_empty():
-				failures.append("ván %d nước %d: còn vụ nổ chờ chưa xử lý sau khi settle" % [game, move_index])
+				failures.append("game %d move %d: pending blasts left after settle" % [game, move_index])
 				return
 
 
@@ -309,9 +309,9 @@ func test_gravity_compacts_columns() -> void:
 	board.grid[Vector2i(2, 1)] = TileState.make(TY.HEALTH)
 	var result := MoveResult.new()
 	board.apply_gravity(result)
-	check(board.grid.has(Vector2i(0, 2)), "tile cột 0 phải rơi xuống đáy")
-	check(board.grid.has(Vector2i(2, 2)) and board.grid.has(Vector2i(2, 1)), "cột 2 phải dồn xuống đáy")
-	check(not board.grid.has(Vector2i(0, 0)) and not board.grid.has(Vector2i(2, 0)), "hàng trên phải trống")
+	check(board.grid.has(Vector2i(0, 2)), "column 0 tile must fall to the bottom")
+	check(board.grid.has(Vector2i(2, 2)) and board.grid.has(Vector2i(2, 1)), "column 2 must compact to the bottom")
+	check(not board.grid.has(Vector2i(0, 0)) and not board.grid.has(Vector2i(2, 0)), "the top row must be empty")
 
 
 func test_refill_fills_every_valid_cell() -> void:
@@ -320,5 +320,5 @@ func test_refill_fills_every_valid_cell() -> void:
 	board.rng.seed = 5
 	var result := MoveResult.new()
 	board.apply_gravity(result)
-	check_eq(board.grid.size(), 16, "refill phải lấp đầy mọi ô hợp lệ")
-	check_eq(result.events.size(), 1, "phải có đúng 1 event GRAVITY")
+	check_eq(board.grid.size(), 16, "refill must fill every valid cell")
+	check_eq(result.events.size(), 1, "exactly 1 GRAVITY event expected")

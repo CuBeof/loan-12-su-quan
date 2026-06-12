@@ -10,6 +10,9 @@ const SWAP_TIME := 0.16
 const CLEAR_TIME := 0.18
 const FALL_TIME_PER_CELL := 0.06
 const POP_TIME := 0.15
+const SPAWN_STAGGER := 0.05 # raindrop delay between gems of one column
+const BOUNCE_TIME := 0.09
+const OVERSHOOT_FACTOR := 0.18 # how far past the target a gem falls before bouncing back
 
 @export var catalog: TileCatalog
 @export var rng_seed: int = 0 # 0 = random each run
@@ -179,6 +182,7 @@ func _anim_transformed(changes: Array[Dictionary]) -> void:
 
 
 func _anim_gravity(falls: Array[Dictionary], spawns: Array[Dictionary]) -> void:
+	var total_time := 0.0
 	# Two-phase map update so chained falls inside a column don't collide.
 	var moved: Array = []
 	for fall in falls:
@@ -186,15 +190,11 @@ func _anim_gravity(falls: Array[Dictionary], spawns: Array[Dictionary]) -> void:
 		if view != null:
 			_tiles.erase(fall.from)
 			moved.append([view, fall.to])
-	var has_motion := false
-	var tween := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	for entry in moved:
 		var view: TileView = entry[0]
 		var to: Vector2i = entry[1]
 		_tiles[to] = view
-		var distance := view.position.distance_to(_cell_to_pos(to)) / _cell_px
-		tween.tween_property(view, "position", _cell_to_pos(to), maxf(0.1, FALL_TIME_PER_CELL * distance))
-		has_motion = true
+		total_time = maxf(total_time, _drop_tile(view, _cell_to_pos(to), 0.0))
 
 	var spawn_index_per_column: Dictionary = {}
 	for spawn in spawns:
@@ -202,14 +202,29 @@ func _anim_gravity(falls: Array[Dictionary], spawns: Array[Dictionary]) -> void:
 		var index := int(spawn_index_per_column.get(cell.x, 0))
 		spawn_index_per_column[cell.x] = index + 1
 		var view := _create_tile_view(cell, spawn.type, spawn.special)
+		# Spawn above the board: clip_contents keeps the gem invisible
+		# until it enters the grid.
 		view.position = _cell_to_pos(Vector2i(cell.x, -1 - index))
-		var distance := view.position.distance_to(_cell_to_pos(cell)) / _cell_px
-		tween.tween_property(view, "position", _cell_to_pos(cell), maxf(0.12, FALL_TIME_PER_CELL * distance))
-		has_motion = true
-	if has_motion:
-		await tween.finished
-	else:
-		tween.kill()
+		# Raindrop stagger: lower gems of a column land first, one by one.
+		total_time = maxf(total_time, _drop_tile(view, _cell_to_pos(cell), index * SPAWN_STAGGER))
+	if total_time > 0.0:
+		await get_tree().create_timer(total_time).timeout
+
+
+## Drops a tile to its target, overshooting slightly past it and bouncing
+## back up like a raindrop. Returns the total animation time.
+func _drop_tile(view: TileView, target: Vector2, delay: float) -> float:
+	var distance := view.position.distance_to(target) / _cell_px
+	var fall_time := maxf(0.12, FALL_TIME_PER_CELL * distance)
+	var overshoot := target + Vector2(0.0, _cell_px * OVERSHOOT_FACTOR)
+	var tween := create_tween()
+	if delay > 0.0:
+		tween.tween_interval(delay)
+	tween.tween_property(view, "position", overshoot, fall_time) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(view, "position", target, BOUNCE_TIME) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	return delay + fall_time + BOUNCE_TIME
 
 
 func _anim_shuffle(layout: Dictionary) -> void:

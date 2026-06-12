@@ -23,7 +23,7 @@ func play_sfx(key: StringName) -> void:
 	if _bank == null or not _bank.sounds.has(key):
 		if not _warned.has(key):
 			_warned[key] = true
-			push_warning("SoundBank: chưa gán âm thanh cho khóa '%s'" % key)
+			push_warning("SoundBank: no sound assigned for key '%s'" % key)
 		return
 	for player in _players:
 		if not player.playing:

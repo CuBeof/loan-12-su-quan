@@ -2,17 +2,25 @@
 - Game offline match-3 RPG
 - Dành cho điện thoại Android với nhiều kích thước màn hình
 - Sử dụng công cụ godot 4.6 (latest)
+- Nội dung game viết bằng tiếng Anh (mặc định); hỗ trợ đa ngôn ngữ qua hệ thống translation (khóa dịch → en/vi), không hardcode text hiển thị
 - Thư mục `example` là một game match-3 cơ bản với đầy đủ hiệu ứng, âm thanh. Game hoàn toàn có thể chơi được. Tham khảo nếu cần.
 
 # Cơ chế
 - Bàn cờ kích thước tối đa 8x8, có thể thay đổi hình dạng và kích thước tùy vào màn chơi
 - 5 loại tiles: tấn công, máu, tiền, năng lượng và kinh nghiệm.
 - Người chơi và máy luân phiên di chuyển tile trên bàn cờ chung, ghép quân để chiếm lợi thế hoặc phá nước đi tiếp theo của đối phương
-- Nếu nhân vật hoặc đối phương ghép được nhiều hơn 3 viên cùng một hàng thì sẽ được thêm lượt đi.
-- Ghép 4 sẽ ăn 4 viên đó và tạo viên cường hoá (viên quét) cùng loại xoá hàng ngang hoặc hàng dọc toàn bàn cờ tùy theo cách nó được ghép
-- Ghép 5 viên sẽ ăn 5 viên, chỉ số mỗi viên tăng x lần, để lại viên cường hoá (viên biến đổi), khi ghép viên cường hoá với bất kỳ viên nào sẽ ăn toàn bộ viên cùng loại trên bàn cờ, đồng thời có xác xuất rơi ra đồ.
-- ghép hình chữ L hoặc chữ T sẽ ăn và tạo ra viên nổ cùng loại, nếu viên nổ được ghép các viên được ghép sẽ bị ăn trước, sau khi viên mới rơi xuống sẽ tạo ra một vụ nổ 3x3 quanh vị trí cuối cùng của viên nổ, nếu 2 viên nổ được ghép sẽ tạo tăng lượt, chỉ số vụ nổ tăng x lần, nếu ghép viên nổ và viên ghép sẽ tạo ra hiệu ứng quét 2 hàng hoặc 2 cột.
-- Ghép viên biến đổi và viên nổ sẽ biến tất cả viên cùng loại thành viên nổ, ghép viên biến đổi và viên quét sẽ biến tất cả viên cùng loại thành viên quét với chiều ngẫu nhiên 
+- Cơ chế ghép và viên đặc biệt theo **chuẩn Candy Crush** (đã chốt 2026-06-12):
+  - **Ghép 4 thẳng**: ăn 4 viên, tạo **viên quét** cùng loại — ghép ngang tạo quét dọc, ghép dọc tạo quét ngang. Khi kích hoạt, viên quét xóa toàn bộ hàng/cột của nó.
+  - **Ghép chữ L/T**: ăn các viên, tạo **viên nổ** cùng loại. Viên nổ kích hoạt nổ 3x3 **hai lần**: nổ lần đầu, sống sót, rơi xuống theo trọng lực rồi nổ lần hai tại vị trí đáp.
+  - **Ghép 5 thẳng**: ăn 5 viên, chỉ số mỗi viên tăng x lần, tạo **viên biến đổi**. Ghép viên biến đổi với viên thường sẽ ăn toàn bộ viên cùng loại trên bàn cờ, đồng thời có xác suất rơi ra đồ.
+  - **Biến đổi + quét**: biến tất cả viên cùng loại thành viên quét với chiều ngẫu nhiên rồi kích hoạt toàn bộ.
+  - **Biến đổi + nổ**: biến tất cả viên cùng loại thành viên nổ rồi kích hoạt toàn bộ.
+  - **Biến đổi + biến đổi**: xóa toàn bộ bàn cờ.
+  - **Biến đổi trúng vụ nổ/quét gián tiếp**: tự kích hoạt, ăn toàn bộ một loại viên ngẫu nhiên.
+  - **Nổ + nổ**: thêm lượt, nổ 5x5 hai đợt (đợt hai sau khi viên mới rơi xuống), chỉ số vụ nổ tăng x lần.
+  - **Nổ + quét**: chữ thập lớn — xóa 3 hàng + 3 cột quanh điểm ghép.
+  - **Quét + quét**: chữ thập — xóa 1 hàng + 1 cột.
+- Thêm lượt đi khi ghép được một hàng/cột thẳng nhiều hơn 3 viên (hình L/T 3+3 không tính) hoặc khi ghép nổ + nổ.
 - ghép tấn công sẽ tấn công trừ máu đối phương, máu về 0 sẽ thua, bị trừ một mạng, lượng máu mất sẽ duy trì qua trận đấu tiếp theo. Mạng sẽ hồi theo thời gian, ngẫu nhiên qua match-5 hoặc nạp tiền
 - ghép máu sẽ hồi lại máu đã mất, một số tướng và quái vật có thể hồi vượt lượng tối đa và biến thành một dạng buff tùy nhân vật
 - ghép năng lượng sẽ hồi năng lượng, dùng để sử dụng skill

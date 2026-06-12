@@ -5,7 +5,7 @@ extends Resource
 ## while `texture` is empty.
 
 @export var id: StringName
-@export var display_name: String = ""
+@export var display_name_key: StringName # translation key, resolve with tr()
 @export var color: Color = Color.GRAY
 @export var texture: Texture2D
 @export var match_sfx: StringName = &"tile_match"

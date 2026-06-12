@@ -1,0 +1,9 @@
+keys,en,vi
+UI_TURN,Turn %d,Lượt %d
+UI_EXTRA_TURN,Extra turn!,Thêm lượt!
+UI_COUNTS,ATK: %d   HP: %d   Gold: %d   Energy: %d   XP: %d,Công: %d   Máu: %d   Vàng: %d   NL: %d   KN: %d
+TILE_ATTACK,Attack,Tấn công
+TILE_HEALTH,Health,Máu
+TILE_GOLD,Gold,Vàng
+TILE_ENERGY,Energy,Năng lượng
+TILE_EXP,Experience,Kinh nghiệm

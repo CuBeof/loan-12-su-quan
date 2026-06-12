@@ -43,7 +43,6 @@ theme_override_constants/separation = 12
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
-text = "Lượt 1"
 horizontal_alignment = 1
 
 [node name="InfoLabel" type="Label" parent="Margin/Layout"]
@@ -61,6 +60,7 @@ horizontal_alignment = 1
 
 [node name="BoardView" type="Control" parent="Margin/Layout"]
 unique_name_in_owner = true
+clip_contents = true
 layout_mode = 2
 size_flags_vertical = 3
 script = ExtResource("2_board")

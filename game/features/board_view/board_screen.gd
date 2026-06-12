@@ -20,7 +20,7 @@ func _on_move_resolved(result: MoveResult) -> void:
 	for type: int in result.cleared_counts:
 		_totals[type] = int(_totals.get(type, 0)) + int(result.cleared_counts[type])
 	if result.extra_turn:
-		_info_label.text = "Thêm lượt!"
+		_info_label.text = tr(&"UI_EXTRA_TURN")
 	else:
 		_info_label.text = ""
 		_turn += 1
@@ -28,8 +28,8 @@ func _on_move_resolved(result: MoveResult) -> void:
 
 
 func _update_labels() -> void:
-	_turn_label.text = "Lượt %d" % _turn
-	_counts_label.text = "Công: %d   Máu: %d   Vàng: %d   NL: %d   KN: %d" % [
+	_turn_label.text = tr(&"UI_TURN") % _turn
+	_counts_label.text = tr(&"UI_COUNTS") % [
 		int(_totals.get(TileTypes.Type.ATTACK, 0)),
 		int(_totals.get(TileTypes.Type.HEALTH, 0)),
 		int(_totals.get(TileTypes.Type.GOLD, 0)),

@@ -22,7 +22,7 @@ func check(condition: bool, message: String) -> void:
 
 func check_eq(actual: Variant, expected: Variant, message: String) -> void:
 	if actual != expected:
-		failures.append("%s (nhận %s, mong đợi %s)" % [message, str(actual), str(expected)])
+		failures.append("%s (got %s, expected %s)" % [message, str(actual), str(expected)])
 
 
 ## Builds a deterministic board from string rows. Refill is disabled so
@@ -37,5 +37,5 @@ func make_board(rows: Array[String]) -> BoardLogic:
 		for x in range(row.length()):
 			var letter := row[x]
 			board.grid[Vector2i(x, y)] = TileState.make(CHAR_TO_TYPE[letter])
-	check(MatchFinder.find_groups(board.grid).is_empty(), "layout test có match sẵn — sửa lại layout")
+	check(MatchFinder.find_groups(board.grid).is_empty(), "test layout contains a pre-made match — fix the layout")
 	return board
