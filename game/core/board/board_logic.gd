@@ -5,6 +5,8 @@ extends RefCounted
 ## No nodes, no assets — testable headless and simulatable by the AI.
 
 const MAX_CASCADES := 50
+# SPEC: a rejected swap counts as an enemy attack worth this many attack tiles.
+const INVALID_SWAP_PENALTY_ATTACK_TILES := 2
 
 var size: Vector2i = Vector2i(8, 8)
 var valid_cells: Array[Vector2i] = [] # board shape (holes excluded), ordered y then x
@@ -59,6 +61,7 @@ func try_move(a: Vector2i, b: Vector2i) -> MoveResult:
 		_swap_tiles(a, b)
 		result.add(BoardEvent.Kind.SWAP, {"a": a, "b": b})
 		result.add(BoardEvent.Kind.SWAP_REJECTED, {"a": a, "b": b})
+		result.penalty_attack_tiles = INVALID_SWAP_PENALTY_ATTACK_TILES
 		return result
 
 	result.valid = true

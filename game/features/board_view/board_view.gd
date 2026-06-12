@@ -5,6 +5,7 @@ extends Control
 ## Owns no game state beyond the visual tile map.
 
 signal move_resolved(result: MoveResult)
+signal move_rejected(result: MoveResult) # bounced swap; carries the attack penalty
 
 const SWAP_TIME := 0.16
 const CLEAR_TIME := 0.18
@@ -89,6 +90,8 @@ func _attempt_move(a: Vector2i, b: Vector2i) -> void:
 	_busy = false
 	if result.valid:
 		move_resolved.emit(result)
+	else:
+		move_rejected.emit(result)
 
 
 func _play_events(events: Array[BoardEvent]) -> void:

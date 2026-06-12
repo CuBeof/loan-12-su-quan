@@ -55,6 +55,27 @@ func test_swap_without_match_is_rejected_and_reverted() -> void:
 	check_eq(after, before, "board must revert after a rejected swap")
 
 
+## SPEC rule: a rejected swap counts as an enemy attack worth 2 attack
+## tiles. Valid moves and non-swaps carry no penalty.
+func test_rejected_swap_carries_attack_penalty() -> void:
+	var board := make_board(["ahah", "haha", "ahah"])
+	var rejected := board.try_move(Vector2i(0, 0), Vector2i(1, 0))
+	check_eq(rejected.penalty_attack_tiles, 2, "rejected swap must carry a 2-attack-tile penalty")
+
+	var non_adjacent := board.try_move(Vector2i(0, 0), Vector2i(2, 0))
+	check_eq(non_adjacent.penalty_attack_tiles, 0, "non-adjacent attempt is not a swap, no penalty")
+
+	var valid_board := make_board([
+		"aheha",
+		"hahah",
+		"gaghe",
+		"hgeha",
+	])
+	var valid := valid_board.try_move(Vector2i(1, 3), Vector2i(1, 2))
+	check(valid.valid, "swap must be valid")
+	check_eq(valid.penalty_attack_tiles, 0, "valid move must carry no penalty")
+
+
 func test_match3_clears_and_tallies() -> void:
 	var board := make_board([
 		"aheha",

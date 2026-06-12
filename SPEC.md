@@ -21,6 +21,7 @@
   - **Nổ + quét**: chữ thập lớn — xóa 3 hàng + 3 cột quanh điểm ghép.
   - **Quét + quét**: chữ thập — xóa 1 hàng + 1 cột.
 - Thêm lượt đi khi ghép được một hàng/cột thẳng nhiều hơn 3 viên (hình L/T 3+3 không tính) hoặc khi ghép nổ + nổ.
+- Swap không tạo được match nào (nước đi hỏng) sẽ bị hoàn về vị trí cũ và bị tính là đối phương tấn công với sát thương tương đương 2 viên tấn công.
 - ghép tấn công sẽ tấn công trừ máu đối phương, máu về 0 sẽ thua, bị trừ một mạng, lượng máu mất sẽ duy trì qua trận đấu tiếp theo. Mạng sẽ hồi theo thời gian, ngẫu nhiên qua match-5 hoặc nạp tiền
 - ghép máu sẽ hồi lại máu đã mất, một số tướng và quái vật có thể hồi vượt lượng tối đa và biến thành một dạng buff tùy nhân vật
 - ghép năng lượng sẽ hồi năng lượng, dùng để sử dụng skill

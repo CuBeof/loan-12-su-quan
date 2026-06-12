@@ -97,7 +97,7 @@ Tạo `game/` với project.godot (Mobile renderer, portrait, stretch, ETC2/ASTC
 **Nghiệm thu**: bảng luật đặc biệt có unit test phủ từng dòng; chơi tay được trên cửa sổ portrait.
 
 ### Giai đoạn 2 — Lớp chiến đấu theo lượt
-`TurnManager` (state machine: PlayerTurn → Resolving → CheckExtraTurn → EnemyTurn…), `BattleState` (HP/năng lượng/vàng/exp hai phía), `EffectResolver` ánh xạ kết quả ghép → hiệu ứng chiến đấu, thêm lượt khi ghép > 3, thắng/thua, máu mất duy trì qua trận, hệ thống mạng (hồi theo thời gian/match-5), nút rút lui (xử thua, trừ mạng). HUD trận đấu với thanh máu/mana hai phía.
+`TurnManager` (state machine: PlayerTurn → Resolving → CheckExtraTurn → EnemyTurn…), `BattleState` (HP/năng lượng/vàng/exp hai phía), `EffectResolver` ánh xạ kết quả ghép → hiệu ứng chiến đấu (gồm phạt swap hỏng: đối phương tấn công với sát thương tương đương 2 viên tấn công — `MoveResult.penalty_attack_tiles`), thêm lượt khi ghép > 3, thắng/thua, máu mất duy trì qua trận, hệ thống mạng (hồi theo thời gian/match-5), nút rút lui (xử thua, trừ mạng). HUD trận đấu với thanh máu/mana hai phía.
 **Nghiệm thu**: đấu được một trận hoàn chỉnh người vs "AI ngẫu nhiên" tạm.
 
 ### Giai đoạn 3 — AI đối thủ

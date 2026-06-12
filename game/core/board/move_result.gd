@@ -7,6 +7,9 @@ var valid: bool = false
 var events: Array[BoardEvent] = []
 var cleared_counts: Dictionary = {} # TileTypes.Type -> int
 var extra_turn: bool = false
+# SPEC rule: a rejected swap counts as the opponent attacking with damage
+# equivalent to this many attack tiles. The battle layer converts it.
+var penalty_attack_tiles: int = 0
 
 
 func add(kind: int, data: Dictionary = {}) -> void:

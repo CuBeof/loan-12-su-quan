@@ -13,6 +13,7 @@ var _totals: Dictionary = {}
 
 func _ready() -> void:
 	_board.move_resolved.connect(_on_move_resolved)
+	_board.move_rejected.connect(_on_move_rejected)
 	_update_labels()
 
 
@@ -25,6 +26,11 @@ func _on_move_resolved(result: MoveResult) -> void:
 		_info_label.text = ""
 		_turn += 1
 	_update_labels()
+
+
+func _on_move_rejected(result: MoveResult) -> void:
+	if result.penalty_attack_tiles > 0:
+		_info_label.text = tr(&"UI_INVALID_MOVE_PENALTY") % result.penalty_attack_tiles
 
 
 func _update_labels() -> void:

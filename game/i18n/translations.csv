@@ -1,6 +1,7 @@
 keys,en,vi
 UI_TURN,Turn %d,Lượt %d
 UI_EXTRA_TURN,Extra turn!,Thêm lượt!
+UI_INVALID_MOVE_PENALTY,Invalid move! Enemy counterattacks (%d ATK),Nước hỏng! Đối phương phản công (%d Công)
 UI_COUNTS,ATK: %d   HP: %d   Gold: %d   Energy: %d   XP: %d,Công: %d   Máu: %d   Vàng: %d   NL: %d   KN: %d
 TILE_ATTACK,Attack,Tấn công
 TILE_HEALTH,Health,Máu
