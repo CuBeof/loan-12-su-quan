@@ -33,6 +33,7 @@
 - ghép tấn công sẽ tấn công trừ máu đối phương, máu về 0 sẽ thua, bị trừ một mạng, lượng máu mất sẽ duy trì qua trận đấu tiếp theo. Mạng sẽ hồi theo thời gian, ngẫu nhiên qua match-5 hoặc nạp tiền
 - ghép máu sẽ hồi lại máu đã mất, một số tướng và quái vật có thể hồi vượt lượng tối đa và biến thành một dạng buff tùy nhân vật
 - ghép năng lượng sẽ hồi năng lượng, dùng để sử dụng skill
+- **Kỹ năng**: tốn năng lượng, mặc định dùng xong sẽ kết thúc lượt (có cờ giữ lượt cho kỹ năng đặc biệt). Hiệu ứng kỹ năng là data-driven, gồm các loại: sát thương trực tiếp (tương đương N viên tấn công), phá vùng bàn cờ ngẫu nhiên, trạng thái có thời hạn theo lượt (đóng băng — mất lượt; độc — mất máu mỗi lần swap; miễn nhiễm theo nguồn sát thương; tăng % sát thương phải nhận), và chỉnh bất kỳ chỉ số nào qua modifier. Số kỹ năng mỗi nhân vật có thể thay đổi; ví dụ hiện tại: người chơi 3 kỹ năng (Hỏa pháo 20 / Đóng băng 40 / Kịch độc 60), AI 1 kỹ năng (Da đá 20). Chỉ số trong ví dụ chưa cân bằng.
 - Ghép vàng sẽ tích lũy vàng sau màn chơi nếu thắng trận, một số kẻ thù có thể ghép vàng để cướp vàng đang có của người chơi hoặc dùng để mua một số item đặc biệt chỉ quái vật mới dùng được trong màn chơi đó
 - ghép kinh nghiệm sẽ tích lũy kinh nghiệm để lên cấp cho nhân vật sau màn chơi nếu thắng, một số kẻ thù cũng có thể dùng kinh nghiêmk để cường hoá kỹ năng hoặc chỉ số trong màn chơi đó
 - Có cây kỹ năng dùng để mở khoá kỹ năng mới, dùng điểm kỹ năng để mở khoá, điểm kỹ năng nhận được khi nhân vật lên cấp

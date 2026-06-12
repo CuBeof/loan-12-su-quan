@@ -20,23 +20,27 @@ const HEAL_FLASH := Color(0.55, 1.0, 0.55)
 @onready var _result_label: Label = %ResultLabel
 @onready var _rewards_label: Label = %RewardsLabel
 @onready var _play_again_button: Button = %PlayAgainButton
+@onready var _skill_bar: HBoxContainer = %SkillBar
 
 var _turns: TurnManager
+var _player_def_used: CombatantDefinition
+var _enemy_def_used: CombatantDefinition
+var _skill_buttons: Array[Button] = []
 
 
 func _ready() -> void:
 	# Prefer the matchup chosen on the map; fall back to the exported
 	# defaults so the scene still runs standalone (F6).
-	var player := GameState.player_def if GameState.player_def != null else player_def
-	var enemy := GameState.current_enemy if GameState.current_enemy != null else enemy_def
+	_player_def_used = GameState.player_def if GameState.player_def != null else player_def
+	_enemy_def_used = GameState.current_enemy if GameState.current_enemy != null else enemy_def
 	# The player's state wraps the profile StatBlock so gear/item/buff
 	# modifiers apply automatically and lost HP carries over (SPEC).
 	var player_state: CombatantState
 	if GameState.profile != null:
 		player_state = CombatantState.from_block(GameState.profile.stats, GameState.profile.current_hp)
 	else:
-		player_state = _make_state(player)
-	var enemy_state := _make_state(enemy)
+		player_state = _make_state(_player_def_used)
+	var enemy_state := _make_state(_enemy_def_used)
 	for mod_data in GameState.battle_modifiers:
 		if mod_data is Dictionary:
 			var mod := StatModifier.from_dict(mod_data)
@@ -44,16 +48,62 @@ func _ready() -> void:
 				enemy_state.stats.add_modifier(mod)
 	_turns = TurnManager.new()
 	_turns.setup(player_state, enemy_state, randi())
-	_player_panel.setup(player)
-	_enemy_panel.setup(enemy)
+	_player_panel.setup(_player_def_used)
+	_enemy_panel.setup(_enemy_def_used)
 	_retreat_button.text = tr(&"UI_RETREAT")
 	_play_again_button.text = tr(&"UI_CONTINUE")
+	_build_skill_bar()
 	_board.move_resolved.connect(_on_move_resolved)
 	_board.move_rejected.connect(_on_move_rejected)
 	_retreat_button.pressed.connect(_on_retreat_pressed)
 	_play_again_button.pressed.connect(_on_play_again_pressed)
 	EventBus.battle_started.emit()
 	_refresh()
+
+
+func _build_skill_bar() -> void:
+	for skill in _player_def_used.skills:
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(0, 52)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.text = "%s (%d)" % [tr(skill.display_name_key), skill.energy_cost]
+		button.add_theme_font_size_override(&"font_size", 16)
+		button.pressed.connect(_on_skill_pressed.bind(skill))
+		_skill_bar.add_child(button)
+		_skill_buttons.append(button)
+	_skill_bar.visible = not _skill_buttons.is_empty()
+
+
+func _update_skill_buttons() -> void:
+	var castable := _turns.outcome == TurnManager.Outcome.ONGOING \
+			and _turns.turn_owner == TurnManager.Owner.PLAYER
+	for i in range(_skill_buttons.size()):
+		var skill: SkillDefinition = _player_def_used.skills[i]
+		_skill_buttons[i].disabled = not castable or not _turns.can_cast(skill.energy_cost)
+
+
+func _on_skill_pressed(skill: SkillDefinition) -> void:
+	if _turns.turn_owner != TurnManager.Owner.PLAYER:
+		return
+	_cast_skill(skill)
+
+
+## Casting flow shared by the player and the AI. Async: awaits the board
+## blast animation (if any) before the battle continues.
+func _cast_skill(skill: SkillDefinition) -> void:
+	var cast_outcome := _turns.cast_skill(skill.energy_cost, skill.effects, _board.logic, skill.ends_turn)
+	if cast_outcome.is_empty():
+		return
+	AudioManager.play_sfx(&"skill_cast")
+	_board.input_enabled = false
+	_info_label.text = tr(skill.display_name_key)
+	var effects: Array[Dictionary] = cast_outcome.effects
+	_show_effects(effects)
+	_refresh()
+	var board_result: MoveResult = cast_outcome.get("board_result")
+	if board_result != null:
+		await _board.play_result(board_result)
+	_continue_battle()
 
 
 static func _make_state(def: CombatantDefinition) -> CombatantState:
@@ -82,17 +132,33 @@ func _continue_battle() -> void:
 	if _turns.outcome != TurnManager.Outcome.ONGOING:
 		_end_battle()
 		return
+	# Frozen combatants lose their turn; loop until someone can act
+	# (freeze decrements each skip, so this always terminates).
+	var frozen := _turns.try_skip_frozen_turn()
+	if not frozen.is_empty():
+		_info_label.text = tr(&"UI_FROZEN")
+		_refresh()
+		await get_tree().create_timer(0.8).timeout
+		_continue_battle()
+		return
 	if _turns.turn_owner == TurnManager.Owner.ENEMY:
 		_board.input_enabled = false
 		_enemy_take_turn()
 	else:
 		_board.input_enabled = true
+	_update_skill_buttons()
 
 
 func _enemy_take_turn() -> void:
 	await get_tree().create_timer(ENEMY_THINK_TIME).timeout
 	if _turns.outcome != TurnManager.Outcome.ONGOING:
 		return
+	# Placeholder AI: cast an affordable, still-useful skill, else swap.
+	# Phase 3 replaces this with the behavior-profile move scorer.
+	for skill in _enemy_def_used.skills:
+		if _turns.can_cast(skill.energy_cost) and _skill_worth_casting(skill):
+			_cast_skill(skill)
+			return
 	var move := _turns.choose_enemy_move(_board.logic.grid)
 	if move.is_empty():
 		_turns.pass_turn()
@@ -102,11 +168,28 @@ func _enemy_take_turn() -> void:
 	_board.play_move(move.a, move.b)
 
 
+## False only when every effect is a status its target already has —
+## prevents the AI from wasting energy re-casting active buffs.
+func _skill_worth_casting(skill: SkillDefinition) -> bool:
+	for raw in skill.effects:
+		var data: Dictionary = raw
+		if str(data.get("kind", "")) != "status":
+			return true
+		var status_kind := StatusEffect.kind_from_name(StringName(str(data.get("status", ""))))
+		var target := _turns.opponent() if str(data.get("target", "enemy")) == "enemy" else _turns.mover()
+		if status_kind >= 0 and not target.has_status(status_kind):
+			return true
+	return false
+
+
 func _show_effects(effects: Array[Dictionary]) -> void:
 	for effect in effects:
 		match effect.kind:
 			EffectResolver.EffectKind.DAMAGE, EffectResolver.EffectKind.PENALTY_DAMAGE:
-				_panel_for(effect.target).flash(DAMAGE_FLASH)
+				if bool(effect.get("immune", false)):
+					_info_label.text = tr(&"UI_IMMUNE")
+				else:
+					_panel_for(effect.target).flash(DAMAGE_FLASH)
 			EffectResolver.EffectKind.HEAL:
 				_panel_for(effect.target).flash(HEAL_FLASH)
 
@@ -120,6 +203,7 @@ func _refresh() -> void:
 	_enemy_panel.refresh(_turns.enemy)
 	var owner_key := &"UI_YOUR_TURN" if _turns.turn_owner == TurnManager.Owner.PLAYER else &"UI_ENEMY_TURN"
 	_turn_label.text = "%s - %s" % [tr(&"UI_TURN") % _turns.turn_number, tr(owner_key)]
+	_update_skill_buttons()
 
 
 func _end_battle() -> void:

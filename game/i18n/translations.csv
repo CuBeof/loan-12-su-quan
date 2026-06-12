@@ -14,6 +14,16 @@ UI_CONTINUE,Continue,Tiếp tục
 UI_BACK,Back,Trở về
 UI_REWARDS,Gold +%d   XP +%d,Vàng +%d   KN +%d
 UI_ARMOR,Armor %d,Giáp %d
+UI_FROZEN,Frozen! Turn skipped,Bị đóng băng! Mất lượt
+UI_IMMUNE,Immune!,Miễn nhiễm!
+SKILL_FIRE_BOMB,Fire Bomb,Hỏa pháo
+SKILL_FIRE_BOMB_DESC,Deal damage equal to 4 attack tiles and blast a random 2x2 area of the board.,Gây sát thương tương đương 4 viên tấn công và phá một vùng 2x2 ngẫu nhiên trên bàn cờ.
+SKILL_FREEZE,Freeze,Đóng băng
+SKILL_FREEZE_DESC,Freeze the enemy for 4 turns.,Đóng băng kẻ địch trong 4 lượt.
+SKILL_POISON,Poison,Kịch độc
+SKILL_POISON_DESC,Poison the enemy for 5 turns: every swap they make deals damage equal to 2 attack tiles.,Làm địch trúng độc 5 lượt: mỗi lần chúng swap sẽ chịu sát thương tương đương 2 viên tấn công.
+SKILL_STONE_SKIN,Stone Skin,Da đá
+SKILL_STONE_SKIN_DESC,Immune to attack-tile damage but takes 50% more damage from other sources for 3 turns.,Miễn nhiễm sát thương từ viên tấn công nhưng nhận thêm 50% sát thương từ nguồn khác trong 3 lượt.
 GAME_TITLE,The Twelve Warlords,Loạn 12 Sứ Quân
 MENU_CONTINUE,Continue,Tiếp tục
 MENU_NEW_GAME,New Game,Chơi mới

@@ -93,7 +93,8 @@ Yêu cầu: dự án phải chạy được bằng placeholder ngay từ đầu,
 - ➕ **Gợi ý nước đi**: sau `Settings.hint_delay` giây idle, bàn cờ nhấp nháy nước đi kế tiếp (`BoardLogic.find_hint`). Tốc độ hiệu ứng cũng điều khiển bằng `Settings.effect_speed`.
 - ➕ **Khung chỉ số + giáp/xuyên giáp** (`core/stats/`): mọi chỉ số đọc qua `StatBlock` = base + danh sách `StatModifier` (flat/%, có `source` và vòng đời PERMANENT/RUN/BATTLE). Nguồn giáp tương lai (trang bị, vật phẩm, buff NPC, nội tại vùng…) chỉ là thêm modifier, không sửa code chiến đấu.
 - ➕ **Save/load** (`SaveManager` + `PlayerProfile`): JSON có version + migration hook + backup; stat lưu theo TÊN nên thêm chỉ số mới không vỡ save cũ. Máu mất duy trì qua trận theo SPEC; node bản đồ đã hạ được lưu. Nút "Tiếp tục" hoạt động thật.
-- ⏳ Còn lại: AI thật (GĐ3), hệ thống RPG meta — trang bị/vật phẩm/skill dùng khung stat sẵn có (GĐ4), hệ thống mạng (GĐ6), polish + xuất Android (GĐ7).
+- ➕ **Hệ thống kỹ năng** (`core/battle/skill_resolver.gd` + `status_effect.gd`): `SkillDefinition` (.tres) chứa danh sách hiệu ứng data-driven — damage / board_blast / status / stat_mod; trạng thái theo lượt (đóng băng, độc khi swap, miễn nhiễm nguồn, +% sát thương nhận). Kỹ năng mới = file .tres mới; loại hiệu ứng mới = một nhánh trong SkillResolver. Hero có 3 skill, địch có Stone Skin; AI tạm tự cast khi đủ năng lượng.
+- ⏳ Còn lại: AI thật (GĐ3), hệ thống RPG meta — trang bị/vật phẩm dùng khung stat sẵn có (GĐ4), hệ thống mạng (GĐ6), polish + xuất Android (GĐ7).
 
 ## 5. Lộ trình theo giai đoạn
 

@@ -5,6 +5,7 @@ extends RefCounted
 ## passives) adjusts them by adding modifiers — never by writing values.
 
 var stats := StatBlock.new()
+var statuses: Array[StatusEffect] = [] # battle-only timed conditions
 var hp: int
 var energy: int = 0
 var gold: int = 0 # earned this battle, awarded only on victory (SPEC)
@@ -62,19 +63,46 @@ func is_alive() -> bool:
 	return hp > 0
 
 
-## Applies damage through armor. The attacker's armor_pen reduces the
-## defender's armor first; a non-zero hit always deals at least 1 damage
-## so high armor can never cause a stalemate. Returns {dealt, blocked}.
-func take_damage(amount: int, attacker_armor_pen: int = 0) -> Dictionary:
+func add_status(status: StatusEffect) -> void:
+	statuses.append(status)
+
+
+func has_status(kind: int) -> bool:
+	return first_status(kind) != null
+
+
+func first_status(kind: int) -> StatusEffect:
+	for status in statuses:
+		if status.kind == kind:
+			return status
+	return null
+
+
+## Applies damage through statuses then armor, in this order:
+## 1. SOURCE_IMMUNITY for the damage's source tag -> 0 damage;
+## 2. DAMAGE_TAKEN_PERCENT increases the raw amount;
+## 3. armor (reduced by the attacker's pen) blocks, min 1 always passes.
+## Source tags: &"attack_tiles" (board matches + invalid-swap penalty),
+## &"skill", &"poison" — new mechanics add new tags freely.
+func take_damage(amount: int, attacker_armor_pen: int = 0, source: StringName = &"generic") -> Dictionary:
 	var blocked := 0
 	var through := amount
 	if amount > 0:
+		for status in statuses:
+			if status.kind == StatusEffect.Kind.SOURCE_IMMUNITY \
+					and StringName(str(status.params.get("source", ""))) == source:
+				return {"dealt": 0, "blocked": amount, "immune": true}
+		var boosted := amount
+		for status in statuses:
+			if status.kind == StatusEffect.Kind.DAMAGE_TAKEN_PERCENT \
+					and StringName(str(status.params.get("exclude_source", ""))) != source:
+				boosted += int(amount * int(status.params.get("percent", 0)) / 100.0)
 		var effective_armor := maxi(armor - attacker_armor_pen, 0)
-		blocked = mini(effective_armor, amount - 1)
-		through = amount - blocked
+		blocked = mini(effective_armor, boosted - 1)
+		through = boosted - blocked
 	var dealt := mini(through, hp)
 	hp -= dealt
-	return {"dealt": dealt, "blocked": blocked}
+	return {"dealt": dealt, "blocked": blocked, "immune": false}
 
 
 ## Returns the HP actually restored (no overheal yet — character-specific

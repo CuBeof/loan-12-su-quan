@@ -4,7 +4,7 @@ extends RefCounted
 ## heal/energy/gold/xp from their matched tiles, the opponent takes
 ## attack damage. Returns an ordered effect list for the view to present.
 
-enum EffectKind { DAMAGE, HEAL, ENERGY, GOLD, XP, PENALTY_DAMAGE }
+enum EffectKind { DAMAGE, HEAL, ENERGY, GOLD, XP, PENALTY_DAMAGE, STATUS_APPLIED, STAT_CHANGED, TURN_FROZEN }
 
 
 static func apply_move(result: MoveResult, mover: CombatantState, opponent: CombatantState) -> Array[Dictionary]:
@@ -13,11 +13,12 @@ static func apply_move(result: MoveResult, mover: CombatantState, opponent: Comb
 
 	var attack_tiles := int(counts.get(TileTypes.Type.ATTACK, 0))
 	if attack_tiles > 0:
-		var hit := opponent.take_damage(attack_tiles * mover.attack_per_tile, mover.armor_pen)
+		var hit := opponent.take_damage(attack_tiles * mover.attack_per_tile, mover.armor_pen, &"attack_tiles")
 		effects.append({
 			"kind": EffectKind.DAMAGE,
 			"amount": int(hit.dealt),
 			"blocked": int(hit.blocked),
+			"immune": bool(hit.get("immune", false)),
 			"target": opponent,
 		})
 
@@ -50,10 +51,11 @@ static func apply_move(result: MoveResult, mover: CombatantState, opponent: Comb
 static func apply_penalty(result: MoveResult, mover: CombatantState, opponent: CombatantState) -> Array[Dictionary]:
 	if result.penalty_attack_tiles <= 0:
 		return []
-	var hit := mover.take_damage(result.penalty_attack_tiles * opponent.attack_per_tile, opponent.armor_pen)
+	var hit := mover.take_damage(result.penalty_attack_tiles * opponent.attack_per_tile, opponent.armor_pen, &"attack_tiles")
 	return [{
 		"kind": EffectKind.PENALTY_DAMAGE,
 		"amount": int(hit.dealt),
 		"blocked": int(hit.blocked),
+		"immune": bool(hit.get("immune", false)),
 		"target": mover,
 	}]

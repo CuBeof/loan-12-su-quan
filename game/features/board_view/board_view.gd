@@ -68,6 +68,18 @@ func play_move(a: Vector2i, b: Vector2i) -> void:
 	_attempt_move(a, b)
 
 
+## Plays an externally produced board result (skill blasts) without
+## emitting move signals. Await this to know when animations finished.
+func play_result(result: MoveResult) -> void:
+	if result == null or result.events.is_empty():
+		return
+	_busy = true
+	_clear_hint()
+	await _play_events(result.events)
+	_busy = false
+	_kick_idle()
+
+
 func _gui_input(event: InputEvent) -> void:
 	if _busy or not input_enabled:
 		return

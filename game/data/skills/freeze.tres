@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/skills/skill_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"freeze"
+display_name_key = &"SKILL_FREEZE"
+description_key = &"SKILL_FREEZE_DESC"
+energy_cost = 40
+ends_turn = true
+effects = Array[Dictionary]([{
+"kind": "status",
+"status": "freeze",
+"target": "enemy",
+"turns": 4
+}])

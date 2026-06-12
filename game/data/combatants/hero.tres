@@ -1,6 +1,10 @@
-[gd_resource type="Resource" script_class="CombatantDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="CombatantDefinition" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://data/combatants/combatant_definition.gd" id="1_def"]
+[ext_resource type="Script" path="res://data/skills/skill_definition.gd" id="2_skill"]
+[ext_resource type="Resource" path="res://data/skills/fire_bomb.tres" id="3_s1"]
+[ext_resource type="Resource" path="res://data/skills/freeze.tres" id="4_s2"]
+[ext_resource type="Resource" path="res://data/skills/poison.tres" id="5_s3"]
 
 [resource]
 script = ExtResource("1_def")
@@ -8,7 +12,8 @@ id = &"hero"
 display_name_key = &"COMBATANT_HERO"
 color = Color(0.3, 0.5, 0.85, 1)
 max_hp = 100
-max_energy = 50
+max_energy = 100
 attack_per_tile = 5
 heal_per_tile = 4
 energy_per_tile = 5
+skills = Array[ExtResource("2_skill")]([ExtResource("3_s1"), ExtResource("4_s2"), ExtResource("5_s3")])

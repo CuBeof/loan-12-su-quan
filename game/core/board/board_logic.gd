@@ -118,6 +118,24 @@ func apply_gravity(result: MoveResult) -> void:
 		result.add(BoardEvent.Kind.GRAVITY, {"falls": falls, "spawns": spawns})
 
 
+## Destroys arbitrary cells (skill blasts). Specials caught in the blast
+## chain as usual; the board settles and reshuffles if needed. The caller
+## decides what (if anything) the cleared counts are worth.
+func blast_cells(cells: Array[Vector2i]) -> MoveResult:
+	var result := MoveResult.new()
+	var present: Array[Vector2i] = []
+	for cell in cells:
+		if grid.has(cell):
+			present.append(cell)
+	if present.is_empty():
+		return result
+	result.valid = true
+	_clear_cells(present, result)
+	_settle(result)
+	_ensure_moves(result)
+	return result
+
+
 ## Returns a hint {a, b, cells} highlighting just the two tiles to swap,
 ## or {} only in the impossible case of a dead board (the board is always
 ## kept solvable by reshuffling). It returns the FIRST available move, not
