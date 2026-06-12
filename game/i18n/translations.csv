@@ -41,6 +41,24 @@ MAP_TITLE,Campaign,Hành trình
 MAP_HOME,Home,Quê nhà
 MAP_BANDIT_CAMP,Bandit Camp,Trại cướp
 MAP_WARLORD_KEEP,Warlord Keep,Thành sứ quân
+MAP_MARKET,Market,Chợ phiên
+UI_BAG,Bag,Balo
+UI_GOLD_AMOUNT,Gold: %d,Vàng: %d
+UI_BUY,Buy,Mua
+UI_PRICE,%d gold,%d vàng
+UI_OWNED,Owned: %d,Đang có: %d
+UI_EQUIP,Equip,Trang bị
+UI_UNEQUIP,Unequip,Tháo ra
+UI_EQUIPPED,Equipped,Đang mặc
+UI_USE,Use,Dùng
+UI_CLOSE,Close,Đóng
+UI_STATS_LINE,HP %d/%d   ATK %d   Armor %d,HP %d/%d   Công %d   Giáp %d
+SHOP_KEEPER,Shopkeeper,Chủ quán
+INVENTORY_EMPTY,Your bag is empty.,Balo trống.
+ITEM_ARMOR_VEST,Armor Vest,Áo giáp
+ITEM_ARMOR_VEST_DESC,+5 armor while equipped.,+5 giáp khi mặc.
+ITEM_GINSENG,Ginseng,Nhân sâm
+ITEM_GINSENG_DESC,Restores 50 HP.,Hồi lại 50 máu.
 COMBATANT_HERO,Hero,Anh hùng
 COMBATANT_BANDIT,Bandit,Tên cướp
 COMBATANT_WARLORD,Warlord,Sứ quân

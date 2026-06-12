@@ -10,6 +10,8 @@ var xp: int = 0
 var gold: int = 0
 var current_hp: int = -1 # -1 = full; SPEC: lost HP persists between battles
 var cleared_nodes: Dictionary = {} # map node id (StringName) -> true
+var inventory: Dictionary = {} # item id (StringName) -> count
+var equipped: Array[StringName] = [] # currently worn equipment ids
 var stats := StatBlock.new()
 
 
@@ -21,6 +23,12 @@ func to_dict() -> Dictionary:
 	var nodes_out: Array = []
 	for node_id: StringName in cleared_nodes:
 		nodes_out.append(String(node_id))
+	var inventory_out := {}
+	for item_id: StringName in inventory:
+		inventory_out[String(item_id)] = int(inventory[item_id])
+	var equipped_out: Array = []
+	for item_id in equipped:
+		equipped_out.append(String(item_id))
 	return {
 		"character_id": String(character_id),
 		"level": level,
@@ -28,6 +36,8 @@ func to_dict() -> Dictionary:
 		"gold": gold,
 		"current_hp": current_hp,
 		"cleared_nodes": nodes_out,
+		"inventory": inventory_out,
+		"equipped": equipped_out,
 		"stats": stats.to_dict(),
 	}
 
@@ -41,5 +51,10 @@ static func from_dict(data: Dictionary) -> PlayerProfile:
 	profile.current_hp = int(data.get("current_hp", -1))
 	for node_id in data.get("cleared_nodes", []):
 		profile.cleared_nodes[StringName(str(node_id))] = true
+	var inventory_in: Dictionary = data.get("inventory", {})
+	for key: String in inventory_in:
+		profile.inventory[StringName(key)] = int(inventory_in[key])
+	for item_id in data.get("equipped", []):
+		profile.equipped.append(StringName(str(item_id)))
 	profile.stats = StatBlock.from_dict(data.get("stats", {}))
 	return profile

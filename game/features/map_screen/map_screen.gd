@@ -21,11 +21,14 @@ const NODES: Array[Dictionary] = [
 		"enemy": "res://data/combatants/warlord.tres",
 		"enemy_mods": [{"stat": "armor", "amount": 1, "kind": "flat",
 			"source": "region_warlord_keep", "lifetime": "battle"}]},
+	{"id": &"market", "name_key": &"MAP_MARKET", "pos": Vector2(0.74, 0.66), "enemy": "",
+		"shop": true},
 ]
-const EDGES: Array[Vector2i] = [Vector2i(0, 1), Vector2i(1, 2)]
+const EDGES: Array[Vector2i] = [Vector2i(0, 1), Vector2i(1, 2), Vector2i(0, 3)]
 
 @onready var _graph: Control = %Graph
 @onready var _back_button: Button = %BackButton
+@onready var _bag_button: Button = %BagButton
 @onready var _title: Label = %Title
 
 var _buttons: Array[Button] = []
@@ -34,7 +37,9 @@ var _buttons: Array[Button] = []
 func _ready() -> void:
 	_title.text = tr(&"MAP_TITLE")
 	_back_button.text = tr(&"UI_BACK")
+	_bag_button.text = tr(&"UI_BAG")
 	_back_button.pressed.connect(func() -> void: SceneManager.goto(SceneManager.MAIN_MENU, false))
+	_bag_button.pressed.connect(func() -> void: SceneManager.goto(SceneManager.INVENTORY))
 	_graph.draw.connect(_draw_edges)
 	_graph.resized.connect(_layout_nodes)
 	for i in range(NODES.size()):
@@ -73,9 +78,12 @@ func _refresh_states() -> void:
 	for i in range(NODES.size()):
 		var button := _buttons[i]
 		var has_enemy: bool = NODES[i].enemy != ""
+		var is_shop: bool = NODES[i].get("shop", false)
 		var reachable := _is_reachable(i)
-		button.disabled = not reachable or not has_enemy
-		if not has_enemy:
+		button.disabled = not reachable or (not has_enemy and not is_shop)
+		if is_shop:
+			button.modulate = COLOR_REACHABLE if reachable else COLOR_LOCKED
+		elif not has_enemy:
 			button.modulate = COLOR_CLEARED
 		elif GameState.is_node_cleared(NODES[i].id):
 			button.modulate = COLOR_CLEARED
@@ -98,7 +106,12 @@ func _draw_edges() -> void:
 
 
 func _on_node_pressed(index: int) -> void:
-	if NODES[index].enemy == "" or not _is_reachable(index):
+	if not _is_reachable(index):
+		return
+	if NODES[index].get("shop", false):
+		SceneManager.goto(SceneManager.SHOP)
+		return
+	if NODES[index].enemy == "":
 		return
 	GameState.current_enemy = load(NODES[index].enemy) as CombatantDefinition
 	GameState.current_node = NODES[index].id

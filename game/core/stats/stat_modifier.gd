@@ -41,13 +41,16 @@ func to_dict() -> Dictionary:
 
 
 ## Returns null for data this version doesn't understand (forward compat).
+## Reads "mod_kind" for flat/percent first so effect dicts can use "kind"
+## for their own effect type without colliding.
 static func from_dict(data: Dictionary) -> StatModifier:
 	var stat_ := StatTypes.stat_from_name(StringName(str(data.get("stat", ""))))
 	var lifetime_ := StatTypes.lifetime_from_name(StringName(str(data.get("lifetime", ""))))
 	if stat_ < 0 or lifetime_ < 0:
 		return null
 	var kind_ := Kind.FLAT
+	var kind_name := str(data.get("mod_kind", data.get("kind", "flat")))
 	for candidate: int in KIND_NAMES:
-		if String(KIND_NAMES[candidate]) == str(data.get("kind", "flat")):
+		if String(KIND_NAMES[candidate]) == kind_name:
 			kind_ = candidate
 	return make(stat_, int(data.get("amount", 0)), StringName(str(data.get("source", ""))), lifetime_, kind_)
