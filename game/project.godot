@@ -7,7 +7,7 @@ config_version=5
 [application]
 
 config/name="Loan 12 Su Quan"
-run/main_scene="res://features/board_view/board_screen.tscn"
+run/main_scene="res://features/battle_screen/battle_screen.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 
 [autoload]

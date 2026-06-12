@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/combatants/combatant_definition.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = &"hero"
+display_name_key = &"COMBATANT_HERO"
+color = Color(0.3, 0.5, 0.85, 1)
+max_hp = 100
+max_energy = 50
+attack_per_tile = 5
+heal_per_tile = 4
+energy_per_tile = 5

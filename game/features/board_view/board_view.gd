@@ -19,6 +19,7 @@ const OVERSHOOT_FACTOR := 0.18 # how far past the target a gem falls before boun
 @export var rng_seed: int = 0 # 0 = random each run
 
 var logic: BoardLogic
+var input_enabled: bool = true # battle controller disables this during the enemy turn
 
 var _tiles: Dictionary = {} # Vector2i -> TileView
 var _cell_px: float = 64.0
@@ -38,8 +39,14 @@ func _ready() -> void:
 	_relayout()
 
 
+## Plays a move programmatically (enemy AI) through the same pipeline
+## as player input, so animations and signals behave identically.
+func play_move(a: Vector2i, b: Vector2i) -> void:
+	_attempt_move(a, b)
+
+
 func _gui_input(event: InputEvent) -> void:
-	if _busy:
+	if _busy or not input_enabled:
 		return
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch

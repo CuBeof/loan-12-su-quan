@@ -1,0 +1,129 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://features/battle_screen/battle_screen.gd" id="1_screen"]
+[ext_resource type="Script" path="res://features/board_view/board_view.gd" id="2_board"]
+[ext_resource type="Resource" path="res://data/tiles/tile_catalog.tres" id="3_catalog"]
+[ext_resource type="PackedScene" path="res://features/battle_screen/combatant_panel.tscn" id="4_panel"]
+[ext_resource type="Resource" path="res://data/combatants/hero.tres" id="5_hero"]
+[ext_resource type="Resource" path="res://data/combatants/bandit.tres" id="6_bandit"]
+
+[node name="BattleScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_screen")
+player_def = ExtResource("5_hero")
+enemy_def = ExtResource("6_bandit")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.12, 0.1, 0.16, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 24
+
+[node name="Layout" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TopRow" type="HBoxContainer" parent="Margin/Layout"]
+layout_mode = 2
+
+[node name="RetreatButton" type="Button" parent="Margin/Layout/TopRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="TopSpacer" type="Control" parent="Margin/Layout/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TurnLabel" type="Label" parent="Margin/Layout/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+vertical_alignment = 1
+
+[node name="EnemyPanel" parent="Margin/Layout" instance=ExtResource("4_panel")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="InfoLabel" type="Label" parent="Margin/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.76, 0.2, 1)
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
+[node name="BoardView" type="Control" parent="Margin/Layout"]
+unique_name_in_owner = true
+clip_contents = true
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("2_board")
+catalog = ExtResource("3_catalog")
+
+[node name="PlayerPanel" parent="Margin/Layout" instance=ExtResource("4_panel")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ResultOverlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.65)
+
+[node name="Center" type="CenterContainer" parent="ResultOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ResultBox" type="VBoxContainer" parent="ResultOverlay/Center"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="ResultLabel" type="Label" parent="ResultOverlay/Center/ResultBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 42
+horizontal_alignment = 1
+
+[node name="RewardsLabel" type="Label" parent="ResultOverlay/Center/ResultBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.76, 0.2, 1)
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+
+[node name="PlayAgainButton" type="Button" parent="ResultOverlay/Center/ResultBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22

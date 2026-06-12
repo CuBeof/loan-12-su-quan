@@ -3,6 +3,16 @@ UI_TURN,Turn %d,Lượt %d
 UI_EXTRA_TURN,Extra turn!,Thêm lượt!
 UI_INVALID_MOVE_PENALTY,Invalid move! Enemy counterattacks (%d ATK),Nước hỏng! Đối phương phản công (%d Công)
 UI_COUNTS,ATK: %d   HP: %d   Gold: %d   Energy: %d   XP: %d,Công: %d   Máu: %d   Vàng: %d   NL: %d   KN: %d
+UI_PENALTY_DAMAGE,Invalid move! Counterattack -%d HP,Nước hỏng! Bị phản công -%d HP
+UI_YOUR_TURN,Your turn,Lượt của bạn
+UI_ENEMY_TURN,Enemy's turn,Lượt đối thủ
+UI_RETREAT,Retreat,Rút lui
+UI_VICTORY,Victory!,Chiến thắng!
+UI_DEFEAT,Defeat...,Thất bại...
+UI_PLAY_AGAIN,Play again,Chơi lại
+UI_REWARDS,Gold +%d   XP +%d,Vàng +%d   KN +%d
+COMBATANT_HERO,Hero,Anh hùng
+COMBATANT_BANDIT,Bandit,Tên cướp
 TILE_ATTACK,Attack,Tấn công
 TILE_HEALTH,Health,Máu
 TILE_GOLD,Gold,Vàng
