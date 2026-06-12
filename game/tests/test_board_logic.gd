@@ -339,12 +339,12 @@ func test_find_hint_returns_a_legal_resolving_move() -> void:
 		board._swap_tiles(hint.a, hint.b)
 		check(not MatchFinder.find_groups(board.grid).is_empty(), "the hinted swap must create a match")
 		board._swap_tiles(hint.a, hint.b)
-	check(hint.cells.size() >= 2, "the hint must highlight at least the swapped pair")
+	check_eq(hint.cells.size(), 2, "the hint must highlight exactly the swapped pair (the two tiles to swap)")
+	check(hint.a == tile_swap_neighbor(hint), "the two hinted tiles must be adjacent")
 
 
-func test_find_hint_prefers_the_largest_match() -> void:
-	# Swapping the central 'h' (2,0) with the 'a' below it (2,1) turns row 0
-	# into a 5-line of 'a' — a stronger move than any plain 3-match.
+func test_find_hint_only_highlights_two_adjacent_tiles() -> void:
+	# Even when a swap would clear a long line, the hint shows only the pair.
 	var board := make_board([
 		"aahaa",
 		"hhahh",
@@ -352,7 +352,15 @@ func test_find_hint_prefers_the_largest_match() -> void:
 	])
 	var hint := board.find_hint()
 	check(not hint.is_empty(), "hint must exist")
-	check(hint.cells.size() >= 4, "hint should pick the move clearing the most tiles")
+	check_eq(hint.cells.size(), 2, "hint highlights exactly two tiles regardless of match size")
+	var delta: Vector2i = (hint.a - hint.b).abs()
+	check_eq(delta.x + delta.y, 1, "the two hinted tiles must be orthogonally adjacent")
+
+
+## Helper: returns hint.a iff the two hint cells are adjacent (else a sentinel).
+func tile_swap_neighbor(hint: Dictionary) -> Vector2i:
+	var delta: Vector2i = (hint.a - hint.b).abs()
+	return hint.a if delta.x + delta.y == 1 else Vector2i(-99, -99)
 
 
 func test_gravity_compacts_columns() -> void:

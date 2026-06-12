@@ -34,7 +34,7 @@ func setup(board_size: Vector2i = Vector2i(8, 8), seed_value: int = 0, blocked: 
 	rng.seed = seed_value
 	_fill_no_match()
 	var guard := 0
-	while MoveGenerator.find_moves(grid).is_empty() and guard < 100:
+	while not MoveGenerator.has_move(grid) and guard < 100:
 		_fill_no_match()
 		guard += 1
 
@@ -118,37 +118,17 @@ func apply_gravity(result: MoveResult) -> void:
 		result.add(BoardEvent.Kind.GRAVITY, {"falls": falls, "spawns": spawns})
 
 
-## Returns a hint move {a, b, cells} where `cells` are the tiles to
-## highlight, or {} if the board has no legal move. Picks the move that
-## clears the most tiles so the suggestion feels worthwhile.
+## Returns a hint {a, b, cells} highlighting just the two tiles to swap,
+## or {} only in the impossible case of a dead board (the board is always
+## kept solvable by reshuffling). It returns the FIRST available move, not
+## the best one — the hint exists to unstick the player, not to play for
+## them — which also keeps it cheap.
 func find_hint() -> Dictionary:
-	var best: Dictionary = {}
-	var best_score := -1
-	for move in MoveGenerator.find_moves(grid):
-		var a: Vector2i = move.a
-		var b: Vector2i = move.b
-		var tile_a: TileState = grid[a]
-		var tile_b: TileState = grid[b]
-		var cells: Array[Vector2i] = []
-		var score := 0
-		if MoveGenerator.is_special_combo(tile_a, tile_b):
-			# Special combos always pay off — rank them above plain matches.
-			score = 100
-			cells = [a, b]
-		else:
-			_swap_tiles(a, b)
-			var groups := MatchFinder.find_groups(grid)
-			_swap_tiles(a, b)
-			for group: MatchFinder.MatchGroup in groups:
-				if a in group.cells or b in group.cells:
-					cells.append_array(group.cells)
-					score += group.cells.size()
-			if cells.is_empty():
-				continue
-		if score > best_score:
-			best_score = score
-			best = {"a": a, "b": b, "cells": cells}
-	return best
+	var move := MoveGenerator.find_first_move(grid)
+	if move.is_empty():
+		return {}
+	var cells: Array[Vector2i] = [move.a, move.b]
+	return {"a": move.a, "b": move.b, "cells": cells}
 
 
 func snapshot() -> Dictionary:
@@ -348,11 +328,11 @@ func _random_type_excluding(banned: Dictionary) -> int:
 
 ## Reshuffles normal tiles when no move is left, keeping specials in place.
 func _ensure_moves(result: MoveResult) -> void:
-	if not MoveGenerator.find_moves(grid).is_empty():
+	if MoveGenerator.has_move(grid):
 		return
 	for attempt in range(100):
 		_shuffle_normals()
-		if MatchFinder.find_groups(grid).is_empty() and not MoveGenerator.find_moves(grid).is_empty():
+		if MatchFinder.find_groups(grid).is_empty() and MoveGenerator.has_move(grid):
 			break
 	result.add(BoardEvent.Kind.SHUFFLED, {"layout": snapshot()})
 
