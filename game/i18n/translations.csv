@@ -13,6 +13,7 @@ UI_PLAY_AGAIN,Play again,Chơi lại
 UI_CONTINUE,Continue,Tiếp tục
 UI_BACK,Back,Trở về
 UI_REWARDS,Gold +%d   XP +%d,Vàng +%d   KN +%d
+UI_ARMOR,Armor %d,Giáp %d
 GAME_TITLE,The Twelve Warlords,Loạn 12 Sứ Quân
 MENU_CONTINUE,Continue,Tiếp tục
 MENU_NEW_GAME,New Game,Chơi mới

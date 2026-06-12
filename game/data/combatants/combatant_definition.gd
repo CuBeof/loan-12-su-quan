@@ -15,3 +15,5 @@ extends Resource
 @export var attack_per_tile: int = 5
 @export var heal_per_tile: int = 4
 @export var energy_per_tile: int = 5
+@export var armor: int = 0 # flat damage reduction per hit
+@export var armor_pen: int = 0 # ignores this much of the target's armor

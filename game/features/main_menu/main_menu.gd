@@ -15,9 +15,7 @@ func _ready() -> void:
 	_new_game_button.text = tr(&"MENU_NEW_GAME")
 	_settings_button.text = tr(&"MENU_SETTINGS")
 	_info_button.text = tr(&"MENU_INFO")
-	# No save system yet (Phase 6): Continue is available only after progress
-	# has been made this session.
-	_continue_button.disabled = GameState.cleared_nodes.is_empty()
+	_continue_button.disabled = not GameState.has_profile()
 	_continue_button.pressed.connect(_on_continue)
 	_new_game_button.pressed.connect(_on_new_game)
 	_settings_button.pressed.connect(func() -> void: SceneManager.goto(SceneManager.SETTINGS))
@@ -29,5 +27,5 @@ func _on_continue() -> void:
 
 
 func _on_new_game() -> void:
-	GameState.reset_progress()
+	GameState.start_new_game()
 	SceneManager.goto(SceneManager.MAP)

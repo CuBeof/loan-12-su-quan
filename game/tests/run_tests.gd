@@ -6,6 +6,7 @@ extends SceneTree
 const SUITES: Array[String] = [
 	"res://tests/test_board_logic.gd",
 	"res://tests/test_battle.gd",
+	"res://tests/test_stats.gd",
 ]
 
 

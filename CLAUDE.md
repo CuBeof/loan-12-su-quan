@@ -47,6 +47,8 @@ common/autoload/  (Infrastructure — EventBus, Audio, Save, Scene, Settings)
 4. Kiểm tra match/thắng-thua chỉ chạy khi có nước đi — **không kiểm tra trong `_process`**.
 5. `EventBus` (autoload) chỉ chứa sự kiện vòng đời toàn cục, **tối đa ~15 signal**. Giao tiếp trong một scene dùng signal trực tiếp. Không bao giờ truyền tham chiếu `Node` qua EventBus.
 6. UI không gọi thẳng logic gameplay — UI phát signal, controller nghe. Tiền/đếm vật phẩm dùng `int`, không dùng `float`.
+7. **Chỉ số nhân vật đi qua `StatBlock`** (`core/stats/`): không bao giờ ghi đè giá trị cuối — mọi nguồn (trang bị, vật phẩm, skill, buff NPC, nội tại vùng) là một `StatModifier` có `source` + vòng đời (PERMANENT/RUN/BATTLE). Thêm chỉ số mới = thêm enum + tên trong `StatTypes`.
+8. **Tiến trình lưu được nằm trong `PlayerProfile`** (`core/profile/`), serialize qua `to_dict()/from_dict()` với `.get(key, default)`; `SaveManager` bọc version + migration + backup. Không thêm global rời rạc cho dữ liệu cần lưu.
 
 ## Quy tắc tài nguyên (asset thêm sau)
 

@@ -10,6 +10,7 @@ extends PanelContainer
 @onready var _hp_text: Label = %HPText
 @onready var _energy_bar: ProgressBar = %EnergyBar
 @onready var _energy_text: Label = %EnergyText
+@onready var _armor_label: Label = %ArmorLabel
 
 # Kept so we can kill a running tween before starting a new one — two
 # tweens on the same property otherwise fight and flicker.
@@ -34,6 +35,9 @@ func refresh(state: CombatantState) -> void:
 	_bars_tween.tween_property(_energy_bar, "value", state.energy, 0.25)
 	_hp_text.text = "%d/%d" % [state.hp, state.max_hp]
 	_energy_text.text = "%d/%d" % [state.energy, state.max_energy]
+	_armor_label.visible = state.armor > 0
+	if state.armor > 0:
+		_armor_label.text = tr(&"UI_ARMOR") % state.armor
 
 
 ## Brief tint to signal damage (red) or heal (green).

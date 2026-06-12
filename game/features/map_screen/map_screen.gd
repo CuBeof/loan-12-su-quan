@@ -15,8 +15,12 @@ const NODES: Array[Dictionary] = [
 	{"id": &"home", "name_key": &"MAP_HOME", "pos": Vector2(0.5, 0.86), "enemy": ""},
 	{"id": &"bandit_camp", "name_key": &"MAP_BANDIT_CAMP", "pos": Vector2(0.28, 0.58),
 		"enemy": "res://data/combatants/bandit.tres"},
+	# "enemy_mods": region passives, raw StatModifier dicts applied to the
+	# enemy for that battle only (lifetime "battle").
 	{"id": &"warlord_keep", "name_key": &"MAP_WARLORD_KEEP", "pos": Vector2(0.68, 0.3),
-		"enemy": "res://data/combatants/warlord.tres"},
+		"enemy": "res://data/combatants/warlord.tres",
+		"enemy_mods": [{"stat": "armor", "amount": 1, "kind": "flat",
+			"source": "region_warlord_keep", "lifetime": "battle"}]},
 ]
 const EDGES: Array[Vector2i] = [Vector2i(0, 1), Vector2i(1, 2)]
 
@@ -98,4 +102,5 @@ func _on_node_pressed(index: int) -> void:
 		return
 	GameState.current_enemy = load(NODES[index].enemy) as CombatantDefinition
 	GameState.current_node = NODES[index].id
+	GameState.battle_modifiers = NODES[index].get("enemy_mods", [])
 	SceneManager.goto(SceneManager.BATTLE)

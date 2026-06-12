@@ -12,3 +12,4 @@ max_energy = 50
 attack_per_tile = 6
 heal_per_tile = 4
 energy_per_tile = 5
+armor = 2

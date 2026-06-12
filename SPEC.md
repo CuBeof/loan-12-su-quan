@@ -22,6 +22,14 @@
   - **Quét + quét**: chữ thập — xóa 1 hàng + 1 cột.
 - Thêm lượt đi khi ghép được một hàng/cột thẳng nhiều hơn 3 viên (hình L/T 3+3 không tính) hoặc khi ghép nổ + nổ.
 - Swap không tạo được match nào (nước đi hỏng) sẽ bị hoàn về vị trí cũ và bị tính là đối phương tấn công với sát thương tương đương 2 viên tấn công.
+- **Giáp**: giảm sát thương phẳng mỗi đòn; một đòn khác 0 luôn gây tối thiểu 1 sát thương (không thể bất tử nhờ giáp). **Xuyên giáp** trừ trực tiếp vào giáp đối phương trước khi tính. Nguồn giáp (mỗi nguồn là một modifier có vòng đời riêng):
+  - Chỉ số của nhân vật, thay đổi theo loại nhân vật và level (vĩnh viễn)
+  - Trang bị như áo giáp (vĩnh viễn khi còn mặc)
+  - Vật phẩm, duy trì qua nhiều trận
+  - Kỹ năng, chỉ trong trận
+  - Buff từ NPC, duy trì qua nhiều trận
+  - Nội tại của mỗi vùng trên bản đồ (chỉ trong trận đánh ở vùng đó)
+  - Sẽ phát triển thêm các nguồn khác sau này
 - ghép tấn công sẽ tấn công trừ máu đối phương, máu về 0 sẽ thua, bị trừ một mạng, lượng máu mất sẽ duy trì qua trận đấu tiếp theo. Mạng sẽ hồi theo thời gian, ngẫu nhiên qua match-5 hoặc nạp tiền
 - ghép máu sẽ hồi lại máu đã mất, một số tướng và quái vật có thể hồi vượt lượng tối đa và biến thành một dạng buff tùy nhân vật
 - ghép năng lượng sẽ hồi năng lượng, dùng để sử dụng skill

@@ -13,8 +13,13 @@ static func apply_move(result: MoveResult, mover: CombatantState, opponent: Comb
 
 	var attack_tiles := int(counts.get(TileTypes.Type.ATTACK, 0))
 	if attack_tiles > 0:
-		var dealt := opponent.take_damage(attack_tiles * mover.attack_per_tile)
-		effects.append({"kind": EffectKind.DAMAGE, "amount": dealt, "target": opponent})
+		var hit := opponent.take_damage(attack_tiles * mover.attack_per_tile, mover.armor_pen)
+		effects.append({
+			"kind": EffectKind.DAMAGE,
+			"amount": int(hit.dealt),
+			"blocked": int(hit.blocked),
+			"target": opponent,
+		})
 
 	var health_tiles := int(counts.get(TileTypes.Type.HEALTH, 0))
 	if health_tiles > 0:
@@ -40,9 +45,15 @@ static func apply_move(result: MoveResult, mover: CombatantState, opponent: Comb
 
 
 ## SPEC rule: a rejected swap counts as the opponent attacking the mover
-## with damage equivalent to `penalty_attack_tiles` attack tiles.
+## with damage equivalent to `penalty_attack_tiles` attack tiles. Armor
+## and armor penetration apply exactly like a normal attack.
 static func apply_penalty(result: MoveResult, mover: CombatantState, opponent: CombatantState) -> Array[Dictionary]:
 	if result.penalty_attack_tiles <= 0:
 		return []
-	var dealt := mover.take_damage(result.penalty_attack_tiles * opponent.attack_per_tile)
-	return [{"kind": EffectKind.PENALTY_DAMAGE, "amount": dealt, "target": mover}]
+	var hit := mover.take_damage(result.penalty_attack_tiles * opponent.attack_per_tile, opponent.armor_pen)
+	return [{
+		"kind": EffectKind.PENALTY_DAMAGE,
+		"amount": int(hit.dealt),
+		"blocked": int(hit.blocked),
+		"target": mover,
+	}]

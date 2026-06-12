@@ -90,8 +90,10 @@ Yêu cầu: dự án phải chạy được bằng placeholder ngay từ đầu,
 
 - ✅ **Giai đoạn 0–2** xong: khung dự án, lõi match-3 (chuẩn Candy Crush), lớp chiến đấu theo lượt với AI ngẫu nhiên.
 - 🔄 **Giai đoạn 5** một phần: main menu, settings (tab âm thanh + trải nghiệm), bản đồ chiến dịch (đồ thị node), info; điều hướng qua `SceneManager` (fade + back stack + nút Back Android). Flow hoàn chỉnh: Menu → Bản đồ → Trận đấu → Bản đồ.
-- ➕ **Gợi ý nước đi**: sau `Settings.hint_delay` giây idle, bàn cờ nhấp nháy nước đi tốt nhất (`BoardLogic.find_hint`). Tốc độ hiệu ứng cũng điều khiển bằng `Settings.effect_speed`.
-- ⏳ Còn lại: AI thật (GĐ3), hệ thống RPG meta (GĐ4), save/load (GĐ6), polish + xuất Android (GĐ7).
+- ➕ **Gợi ý nước đi**: sau `Settings.hint_delay` giây idle, bàn cờ nhấp nháy nước đi kế tiếp (`BoardLogic.find_hint`). Tốc độ hiệu ứng cũng điều khiển bằng `Settings.effect_speed`.
+- ➕ **Khung chỉ số + giáp/xuyên giáp** (`core/stats/`): mọi chỉ số đọc qua `StatBlock` = base + danh sách `StatModifier` (flat/%, có `source` và vòng đời PERMANENT/RUN/BATTLE). Nguồn giáp tương lai (trang bị, vật phẩm, buff NPC, nội tại vùng…) chỉ là thêm modifier, không sửa code chiến đấu.
+- ➕ **Save/load** (`SaveManager` + `PlayerProfile`): JSON có version + migration hook + backup; stat lưu theo TÊN nên thêm chỉ số mới không vỡ save cũ. Máu mất duy trì qua trận theo SPEC; node bản đồ đã hạ được lưu. Nút "Tiếp tục" hoạt động thật.
+- ⏳ Còn lại: AI thật (GĐ3), hệ thống RPG meta — trang bị/vật phẩm/skill dùng khung stat sẵn có (GĐ4), hệ thống mạng (GĐ6), polish + xuất Android (GĐ7).
 
 ## 5. Lộ trình theo giai đoạn
 

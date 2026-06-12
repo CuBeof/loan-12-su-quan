@@ -29,8 +29,21 @@ func _ready() -> void:
 	# defaults so the scene still runs standalone (F6).
 	var player := GameState.player_def if GameState.player_def != null else player_def
 	var enemy := GameState.current_enemy if GameState.current_enemy != null else enemy_def
+	# The player's state wraps the profile StatBlock so gear/item/buff
+	# modifiers apply automatically and lost HP carries over (SPEC).
+	var player_state: CombatantState
+	if GameState.profile != null:
+		player_state = CombatantState.from_block(GameState.profile.stats, GameState.profile.current_hp)
+	else:
+		player_state = _make_state(player)
+	var enemy_state := _make_state(enemy)
+	for mod_data in GameState.battle_modifiers:
+		if mod_data is Dictionary:
+			var mod := StatModifier.from_dict(mod_data)
+			if mod != null:
+				enemy_state.stats.add_modifier(mod)
 	_turns = TurnManager.new()
-	_turns.setup(_make_state(player), _make_state(enemy), randi())
+	_turns.setup(player_state, enemy_state, randi())
 	_player_panel.setup(player)
 	_enemy_panel.setup(enemy)
 	_retreat_button.text = tr(&"UI_RETREAT")
@@ -44,8 +57,7 @@ func _ready() -> void:
 
 
 static func _make_state(def: CombatantDefinition) -> CombatantState:
-	return CombatantState.make(def.max_hp, def.attack_per_tile, def.heal_per_tile,
-			def.energy_per_tile, def.max_energy)
+	return CombatantState.from_block(GameState.stat_block_from_def(def))
 
 
 func _on_move_resolved(result: MoveResult) -> void:
@@ -116,6 +128,17 @@ func _end_battle() -> void:
 	GameState.last_battle_won = player_won
 	if player_won:
 		GameState.mark_node_cleared(GameState.current_node)
+	var profile := GameState.profile
+	if profile != null:
+		# In-battle buffs (skills) expire; gear/item/NPC modifiers stay.
+		profile.stats.clear_lifetime(StatTypes.Lifetime.BATTLE)
+		if player_won:
+			profile.gold += _turns.player.gold
+			profile.xp += _turns.player.xp
+			profile.current_hp = _turns.player.hp # SPEC: lost HP persists
+		else:
+			profile.current_hp = -1 # full restore on defeat until the lives system lands (TODO)
+		SaveManager.save_profile(profile)
 	_result_label.text = tr(&"UI_VICTORY") if player_won else tr(&"UI_DEFEAT")
 	_rewards_label.visible = player_won
 	if player_won:
