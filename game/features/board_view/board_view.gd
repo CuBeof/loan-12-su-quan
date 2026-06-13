@@ -27,10 +27,11 @@ const OVERSHOOT_FACTOR := 0.16 # how far past the target a gem falls before boun
 
 var logic: BoardLogic
 var input_enabled: bool = true: set = _set_input_enabled # disabled during the enemy turn
-# Async handler(sources: Array[Vector2], attack_tiles: int) the battle sets
-# to fly swords + apply attack damage when a wave clears attack tiles. The
-# board awaits it BEFORE the clear/refill so damage lands first.
-var attack_vfx_handler: Callable = Callable()
+# Async handler(counts: Dictionary, positions_by_type: Dictionary) the
+# battle sets to fly per-tile VFX (sword + damage for attack, orbs for
+# support) when a wave clears. The board awaits it BEFORE the clear/refill
+# so attack damage lands first.
+var wave_vfx_handler: Callable = Callable()
 
 var _tiles: Dictionary = {} # Vector2i -> TileView
 var _cell_px: float = 64.0
@@ -221,10 +222,9 @@ func _play_events(events: Array[BoardEvent]) -> void:
 				await _anim_bomb_primed(event.data.cells)
 			BoardEvent.Kind.CLEARED:
 				var counts: Dictionary = event.data.get("counts", {})
-				var attack_tiles := int(counts.get(TileTypes.Type.ATTACK, 0))
-				if attack_tiles > 0 and attack_vfx_handler.is_valid():
-					# Swords fly + damage lands before the tiles clear/refill.
-					await attack_vfx_handler.call(_attack_cell_positions(event.data.cells), attack_tiles)
+				if not counts.is_empty() and wave_vfx_handler.is_valid():
+					# VFX fly + attack damage lands before the tiles clear/refill.
+					await wave_vfx_handler.call(counts, _cells_by_type(event.data.cells))
 				AudioManager.play_sfx(&"tile_match")
 				await _anim_clear(event.data.cells)
 			BoardEvent.Kind.SPECIAL_CREATED:
@@ -238,14 +238,17 @@ func _play_events(events: Array[BoardEvent]) -> void:
 				await _anim_shuffle(event.data.layout)
 
 
-## Global positions of the attack-type tiles among the cleared cells —
-## where the swords launch from.
-func _attack_cell_positions(cells: Array) -> Array:
-	var out: Array = []
+## Maps each cleared tile type to the global positions of its tiles —
+## where that type's VFX launch from.
+func _cells_by_type(cells: Array) -> Dictionary:
+	var out: Dictionary = {}
 	for cell: Vector2i in cells:
 		var view: TileView = _tiles.get(cell)
-		if view != null and view.type == TileTypes.Type.ATTACK:
-			out.append(view.global_position)
+		if view == null:
+			continue
+		if not out.has(view.type):
+			out[view.type] = []
+		out[view.type].append(view.global_position)
 	return out
 
 
@@ -267,6 +270,7 @@ func _anim_clear(cells: Array[Vector2i]) -> void:
 	for cell in cells:
 		var view: TileView = _tiles.get(cell)
 		if view != null:
+			_spawn_clear_burst(view)
 			views.append(view)
 			_tiles.erase(cell)
 	if views.is_empty():
@@ -277,6 +281,19 @@ func _anim_clear(cells: Array[Vector2i]) -> void:
 	await tween.finished
 	for view in views:
 		view.queue_free()
+
+
+## A colored spark burst where a tile clears (juice for every match).
+func _spawn_clear_burst(view: TileView) -> void:
+	var color := Color.WHITE
+	if catalog != null:
+		var def := catalog.get_def(view.type)
+		if def != null:
+			color = def.color
+	var burst := ClearBurst.new()
+	add_child(burst)
+	burst.position = view.position
+	burst.burst(color, _cell_px)
 
 
 func _anim_bomb_primed(cells: Array[Vector2i]) -> void:

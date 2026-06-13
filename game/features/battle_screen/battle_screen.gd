@@ -6,6 +6,11 @@ extends Control
 const ENEMY_THINK_TIME := 0.35
 const DAMAGE_FLASH := Color(1.0, 0.45, 0.45)
 const HEAL_FLASH := Color(0.55, 1.0, 0.55)
+# Resource orb colors, matched to the tile definitions.
+const HEAL_COLOR := Color(0.3, 0.72, 0.36)
+const ENERGY_COLOR := Color(0.27, 0.55, 0.9)
+const GOLD_COLOR := Color(0.95, 0.76, 0.2)
+const EXP_COLOR := Color(0.63, 0.4, 0.84)
 
 @export var player_def: CombatantDefinition
 @export var enemy_def: CombatantDefinition
@@ -59,7 +64,7 @@ func _ready() -> void:
 	_retreat_button.text = tr(&"UI_RETREAT")
 	_play_again_button.text = tr(&"UI_CONTINUE")
 	_build_skill_bar()
-	_board.attack_vfx_handler = _play_attack_vfx
+	_board.wave_vfx_handler = _play_wave_vfx
 	_board.move_resolved.connect(_on_move_resolved)
 	_board.move_rejected.connect(_on_move_rejected)
 	_retreat_button.pressed.connect(_on_retreat_pressed)
@@ -118,7 +123,7 @@ static func _make_state(def: CombatantDefinition) -> CombatantState:
 
 
 func _on_move_resolved(result: MoveResult) -> void:
-	# Attack damage was already applied per CLEARED wave by _play_attack_vfx;
+	# Attack damage was already applied per CLEARED wave by _play_wave_vfx;
 	# here we apply only the support effects (heal/energy/gold/xp + poison).
 	var effects := _turns.apply_support(result)
 	_show_effects(effects)
@@ -127,10 +132,26 @@ func _on_move_resolved(result: MoveResult) -> void:
 	_continue_battle()
 
 
-## Board callback: a wave cleared `count` attack tiles. Fly swords from
-## those tiles to the victim, then apply the (possibly critical) damage as
-## they land — before the board's clear/refill animations continue.
-func _play_attack_vfx(sources: Array, count: int) -> void:
+## Board callback per CLEARED wave: fly the matched tiles' VFX. Support
+## orbs (heal/energy/gold/exp) fly to the mover's panel as cosmetics (the
+## numbers apply later in apply_support); the attack swords apply their
+## damage and are awaited so it lands before the board clears/refills.
+func _play_wave_vfx(counts: Dictionary, by_type: Dictionary) -> void:
+	var mover := _turns.mover()
+	var mover_panel := _player_panel if _turns.turn_owner == TurnManager.Owner.PLAYER else _enemy_panel
+	var mover_target := mover_panel.global_position + mover_panel.size * 0.5
+	_fly_resource_orbs(by_type, TileTypes.Type.HEALTH, HEAL_COLOR, mover_target, mover.heal_per_tile)
+	_fly_resource_orbs(by_type, TileTypes.Type.ENERGY, ENERGY_COLOR, mover_target, mover.energy_per_tile)
+	_fly_resource_orbs(by_type, TileTypes.Type.GOLD, GOLD_COLOR, mover_target, 1)
+	_fly_resource_orbs(by_type, TileTypes.Type.EXP, EXP_COLOR, mover_target, 1)
+	var attack_tiles := int(counts.get(TileTypes.Type.ATTACK, 0))
+	if attack_tiles > 0:
+		await _play_attack(attack_tiles, by_type.get(TileTypes.Type.ATTACK, []))
+
+
+## Flies swords from the matched attack tiles to the victim, applying the
+## (possibly critical) damage as they land.
+func _play_attack(count: int, sources: Array) -> void:
 	var hit := _turns.apply_attack_wave(count)
 	if hit.is_empty():
 		return
@@ -158,11 +179,34 @@ func _play_attack_vfx(sources: Array, count: int) -> void:
 	_refresh()
 
 
+## Cosmetic: fly up to 5 orbs of one resource type to the owner's panel,
+## with a "+N" gain popup. The actual stat change happens in apply_support.
+func _fly_resource_orbs(by_type: Dictionary, type: int, color: Color, target: Vector2, per_tile: int) -> void:
+	var positions: Array = by_type.get(type, [])
+	if positions.is_empty():
+		return
+	AudioManager.play_sfx(&"resource_collect")
+	for i in range(mini(positions.size(), 5)):
+		var orb := ResourceOrb.new()
+		_vfx_layer.add_child(orb)
+		orb.launch(positions[i], target, color, i * 0.03)
+	_spawn_gain_popup(target, positions.size() * per_tile, color)
+
+
 func _spawn_damage_popup(at: Vector2, amount: int, crit: bool) -> void:
 	var popup := DamagePopup.new()
 	_vfx_layer.add_child(popup)
 	popup.global_position = at - Vector2(20.0, 10.0)
 	popup.show_number(amount, crit)
+
+
+func _spawn_gain_popup(at: Vector2, amount: int, color: Color) -> void:
+	if amount <= 0:
+		return
+	var popup := DamagePopup.new()
+	_vfx_layer.add_child(popup)
+	popup.global_position = at + Vector2(0.0, 24.0) # offset so it doesn't collide with damage
+	popup.show_gain(amount, color)
 
 
 func _shake() -> void:
