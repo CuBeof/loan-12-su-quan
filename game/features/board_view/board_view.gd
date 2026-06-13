@@ -7,13 +7,19 @@ extends Control
 signal move_resolved(result: MoveResult)
 signal move_rejected(result: MoveResult) # bounced swap; carries the attack penalty
 
-const SWAP_TIME := 0.16
-const CLEAR_TIME := 0.18
-const FALL_TIME_PER_CELL := 0.06
-const POP_TIME := 0.15
-const SPAWN_STAGGER := 0.05 # raindrop delay between gems of one column
-const BOUNCE_TIME := 0.09
-const OVERSHOOT_FACTOR := 0.18 # how far past the target a gem falls before bouncing back
+# Mobile-snappy timing. Fall time is per-cell but CLAMPED so a tile
+# refilling from the top of the board can't take ~1s — that made enemy
+# cascades feel frozen. A whole move (with cascades) resolves fast.
+const SWAP_TIME := 0.12
+const CLEAR_TIME := 0.12
+const FALL_TIME_PER_CELL := 0.045
+const FALL_TIME_MIN := 0.07
+const FALL_TIME_MAX := 0.22 # hard cap regardless of fall distance
+const POP_TIME := 0.11
+const SPAWN_STAGGER := 0.025 # raindrop delay between gems of one column
+const SPAWN_STAGGER_MAX := 0.12 # cap total stagger for tall refills
+const BOUNCE_TIME := 0.06
+const OVERSHOOT_FACTOR := 0.16 # how far past the target a gem falls before bouncing back
 
 @export var catalog: TileCatalog
 @export var rng_seed: int = 0 # 0 = random each run
@@ -321,9 +327,9 @@ func _anim_gravity(falls: Array[Dictionary], spawns: Array[Dictionary]) -> void:
 ## back up like a raindrop. Returns the total animation time.
 func _drop_tile(view: TileView, target: Vector2, delay: float) -> float:
 	var distance := view.position.distance_to(target) / _cell_px
-	var fall_time := _dur(maxf(0.12, FALL_TIME_PER_CELL * distance))
+	var fall_time := _dur(clampf(FALL_TIME_PER_CELL * distance, FALL_TIME_MIN, FALL_TIME_MAX))
 	var bounce_time := _dur(BOUNCE_TIME)
-	var staggered := _dur(delay)
+	var staggered := _dur(minf(delay, SPAWN_STAGGER_MAX))
 	var overshoot := target + Vector2(0.0, _cell_px * OVERSHOOT_FACTOR)
 	var tween := create_tween()
 	if staggered > 0.0:

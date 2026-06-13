@@ -3,7 +3,7 @@ extends Control
 ## TurnManager. UI emits signals, this controller listens; logic waits
 ## for board animations because moves are applied via move_resolved.
 
-const ENEMY_THINK_TIME := 0.6
+const ENEMY_THINK_TIME := 0.35
 const DAMAGE_FLASH := Color(1.0, 0.45, 0.45)
 const HEAL_FLASH := Color(0.55, 1.0, 0.55)
 
