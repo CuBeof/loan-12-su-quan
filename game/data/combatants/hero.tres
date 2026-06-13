@@ -16,4 +16,6 @@ max_energy = 100
 attack_per_tile = 5
 heal_per_tile = 4
 energy_per_tile = 5
+crit_chance = 15
+crit_damage = 175
 skills = Array[ExtResource("2_skill")]([ExtResource("3_s1"), ExtResource("4_s2"), ExtResource("5_s3")])

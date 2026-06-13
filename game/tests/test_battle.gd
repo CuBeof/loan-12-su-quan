@@ -113,6 +113,41 @@ func test_forfeit_loses_the_battle() -> void:
 	check_eq(turns.outcome, TurnManager.Outcome.ENEMY_WON, "retreating counts as a loss")
 
 
+func test_attack_wave_applies_per_wave_damage() -> void:
+	var turns := _battle()
+	var hit := turns.apply_attack_wave(3) # 3 x 5 = 15, no crit (0% chance)
+	check_eq(int(hit.amount), 15, "3 attack tiles x 5 = 15 damage")
+	check(not bool(hit.crit), "default combatant never crits")
+	check_eq(turns.enemy.hp, 65, "enemy takes the wave damage")
+	check_eq(turns.turn_owner, TurnManager.Owner.PLAYER, "an attack wave alone does not pass the turn")
+	check(turns.apply_attack_wave(0).is_empty(), "a zero-tile wave does nothing")
+
+
+func test_attack_crits_at_full_chance() -> void:
+	var turns := TurnManager.new()
+	# player: 100% crit chance, 200% crit damage
+	turns.setup(CombatantState.make(100, 5, 4, 5, 50, 0, 0, 100, 200),
+			CombatantState.make(80, 4, 3, 5, 50), 1)
+	var hit := turns.apply_attack_wave(3) # 15 base x 2.0 = 30
+	check(bool(hit.crit), "100% crit chance must crit")
+	check_eq(int(hit.amount), 30, "crit at 200% turns 15 into 30")
+	check_eq(turns.enemy.hp, 50, "enemy takes the critical damage")
+
+
+func test_support_does_not_reapply_attack() -> void:
+	var turns := _battle()
+	var result := MoveResult.new()
+	result.valid = true
+	result.cleared_counts = {TY.ATTACK: 3, TY.HEALTH: 2}
+	turns.player.hp = 50
+	# The view applies attack via apply_attack_wave; move_resolved uses apply_support.
+	turns.apply_attack_wave(3)
+	turns.apply_support(result)
+	check_eq(turns.enemy.hp, 65, "attack must be applied exactly once (15 damage)")
+	check_eq(turns.player.hp, 58, "support still heals 2 x 4 = 8")
+	check_eq(turns.turn_owner, TurnManager.Owner.ENEMY, "apply_support passes the turn")
+
+
 func test_enemy_move_choice_is_legal_and_seeded() -> void:
 	var board := BoardLogic.new()
 	board.setup(Vector2i(8, 8), 42)

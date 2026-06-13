@@ -21,6 +21,7 @@ const HEAL_FLASH := Color(0.55, 1.0, 0.55)
 @onready var _rewards_label: Label = %RewardsLabel
 @onready var _play_again_button: Button = %PlayAgainButton
 @onready var _skill_bar: HBoxContainer = %SkillBar
+@onready var _vfx_layer: Control = %VFXLayer
 
 var _turns: TurnManager
 var _player_def_used: CombatantDefinition
@@ -58,6 +59,7 @@ func _ready() -> void:
 	_retreat_button.text = tr(&"UI_RETREAT")
 	_play_again_button.text = tr(&"UI_CONTINUE")
 	_build_skill_bar()
+	_board.attack_vfx_handler = _play_attack_vfx
 	_board.move_resolved.connect(_on_move_resolved)
 	_board.move_rejected.connect(_on_move_rejected)
 	_retreat_button.pressed.connect(_on_retreat_pressed)
@@ -116,11 +118,58 @@ static func _make_state(def: CombatantDefinition) -> CombatantState:
 
 
 func _on_move_resolved(result: MoveResult) -> void:
-	var effects := _turns.apply_move(result)
+	# Attack damage was already applied per CLEARED wave by _play_attack_vfx;
+	# here we apply only the support effects (heal/energy/gold/xp + poison).
+	var effects := _turns.apply_support(result)
 	_show_effects(effects)
 	_info_label.text = tr(&"UI_EXTRA_TURN") if result.extra_turn else ""
 	_refresh()
 	_continue_battle()
+
+
+## Board callback: a wave cleared `count` attack tiles. Fly swords from
+## those tiles to the victim, then apply the (possibly critical) damage as
+## they land — before the board's clear/refill animations continue.
+func _play_attack_vfx(sources: Array, count: int) -> void:
+	var hit := _turns.apply_attack_wave(count)
+	if hit.is_empty():
+		return
+	var crit := bool(hit.get("crit", false))
+	var victim: CombatantState = hit.target
+	var panel := _panel_for(victim)
+	var target := panel.global_position + panel.size * 0.5
+	var sword_count := clampi(count, 1, 5)
+	var srcs: Array = sources if not sources.is_empty() else [target + Vector2(0.0, 160.0)]
+	AudioManager.play_sfx(&"attack_swing")
+	const STAGGER := 0.04
+	for i in range(sword_count):
+		var sword := SwordVFX.new()
+		_vfx_layer.add_child(sword)
+		sword.launch(srcs[i % srcs.size()], target, crit, i * STAGGER)
+	await get_tree().create_timer(0.22 + STAGGER * (sword_count - 1) + 0.02).timeout
+	if bool(hit.get("immune", false)):
+		_info_label.text = tr(&"UI_IMMUNE")
+	else:
+		panel.flash(DAMAGE_FLASH)
+		AudioManager.play_sfx(&"attack_hit")
+		_spawn_damage_popup(target, int(hit.amount), crit)
+		if crit:
+			_shake()
+	_refresh()
+
+
+func _spawn_damage_popup(at: Vector2, amount: int, crit: bool) -> void:
+	var popup := DamagePopup.new()
+	_vfx_layer.add_child(popup)
+	popup.global_position = at - Vector2(20.0, 10.0)
+	popup.show_number(amount, crit)
+
+
+func _shake() -> void:
+	var tween := create_tween()
+	for i in range(4):
+		tween.tween_property(self, "position", Vector2(randf_range(-9.0, 9.0), randf_range(-9.0, 9.0)), 0.03)
+	tween.tween_property(self, "position", Vector2.ZERO, 0.05)
 
 
 func _on_move_rejected(result: MoveResult) -> void:

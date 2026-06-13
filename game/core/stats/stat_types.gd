@@ -11,6 +11,8 @@ enum Stat {
 	ENERGY_PER_TILE,
 	ARMOR,
 	ARMOR_PEN,
+	CRIT_CHANCE, # percent (0-100) chance an attack crits
+	CRIT_DAMAGE, # percent damage on crit (150 = 1.5x)
 }
 
 ## How long a modifier lives — this is what the engine acts on:
@@ -27,6 +29,8 @@ const STAT_NAMES: Dictionary = {
 	Stat.ENERGY_PER_TILE: &"energy_per_tile",
 	Stat.ARMOR: &"armor",
 	Stat.ARMOR_PEN: &"armor_pen",
+	Stat.CRIT_CHANCE: &"crit_chance",
+	Stat.CRIT_DAMAGE: &"crit_damage",
 }
 
 const LIFETIME_NAMES: Dictionary = {

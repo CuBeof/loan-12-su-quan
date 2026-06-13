@@ -7,20 +7,12 @@ extends RefCounted
 enum EffectKind { DAMAGE, HEAL, ENERGY, GOLD, XP, PENALTY_DAMAGE, STATUS_APPLIED, STAT_CHANGED, TURN_FROZEN }
 
 
-static func apply_move(result: MoveResult, mover: CombatantState, opponent: CombatantState) -> Array[Dictionary]:
+## Support effects only (heal/energy/gold/xp for the mover). Attack
+## damage is applied separately and earlier — TurnManager.apply_attack_wave
+## fires per CLEARED wave so the sword/crit lands before the board refills.
+static func apply_support(result: MoveResult, mover: CombatantState, _opponent: CombatantState) -> Array[Dictionary]:
 	var effects: Array[Dictionary] = []
 	var counts := result.cleared_counts
-
-	var attack_tiles := int(counts.get(TileTypes.Type.ATTACK, 0))
-	if attack_tiles > 0:
-		var hit := opponent.take_damage(attack_tiles * mover.attack_per_tile, mover.armor_pen, &"attack_tiles")
-		effects.append({
-			"kind": EffectKind.DAMAGE,
-			"amount": int(hit.dealt),
-			"blocked": int(hit.blocked),
-			"immune": bool(hit.get("immune", false)),
-			"target": opponent,
-		})
 
 	var health_tiles := int(counts.get(TileTypes.Type.HEALTH, 0))
 	if health_tiles > 0:

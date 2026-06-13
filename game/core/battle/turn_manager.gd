@@ -32,16 +32,55 @@ func opponent() -> CombatantState:
 	return enemy if turn_owner == Owner.PLAYER else player
 
 
-## Applies a valid resolved move for the current owner, then passes the
-## turn unless an extra turn was earned or the battle ended.
-func apply_move(result: MoveResult) -> Array[Dictionary]:
+## Applies one wave of attack damage (one CLEARED event's worth) from the
+## current mover to the opponent, rolling a crit. The battle view calls
+## this as the sword lands, BEFORE the explosion/sweep/refill animations.
+## Returns the DAMAGE effect dict (with "crit"), or {} if nothing applies.
+func apply_attack_wave(attack_tiles: int) -> Dictionary:
+	if outcome != Outcome.ONGOING or attack_tiles <= 0:
+		return {}
+	var m := mover()
+	var amount := attack_tiles * m.attack_per_tile
+	# Short-circuit so a zero-crit combatant never disturbs the RNG stream.
+	var crit := m.crit_chance > 0 and rng.randf() < float(m.crit_chance) / 100.0
+	if crit:
+		amount = int(round(amount * float(m.crit_damage) / 100.0))
+	var hit := opponent().take_damage(amount, m.armor_pen, &"attack_tiles")
+	_check_outcome()
+	return {
+		"kind": EffectResolver.EffectKind.DAMAGE,
+		"amount": int(hit.dealt),
+		"blocked": int(hit.blocked),
+		"immune": bool(hit.get("immune", false)),
+		"crit": crit,
+		"target": opponent(),
+	}
+
+
+## Applies the mover's support effects (heal/energy/gold/xp) and the swap
+## poison proc, then passes the turn. Attack damage is handled separately
+## by apply_attack_wave during animation, so it is NOT re-applied here.
+func apply_support(result: MoveResult) -> Array[Dictionary]:
 	if outcome != Outcome.ONGOING:
 		return []
-	var effects := EffectResolver.apply_move(result, mover(), opponent())
+	var effects := EffectResolver.apply_support(result, mover(), opponent())
 	effects.append_array(_proc_swap_statuses(mover()))
 	_check_outcome()
 	if outcome == Outcome.ONGOING and not result.extra_turn:
 		pass_turn()
+	return effects
+
+
+## Full resolution in one call (no animation): attack waves + support.
+## Used by headless tests and any non-animated path.
+func apply_move(result: MoveResult) -> Array[Dictionary]:
+	if outcome != Outcome.ONGOING:
+		return []
+	var effects: Array[Dictionary] = []
+	var hit := apply_attack_wave(int(result.cleared_counts.get(TileTypes.Type.ATTACK, 0)))
+	if not hit.is_empty():
+		effects.append(hit)
+	effects.append_array(apply_support(result))
 	return effects
 
 

@@ -17,6 +17,8 @@ extends Resource
 @export var energy_per_tile: int = 5
 @export var armor: int = 0 # flat damage reduction per hit
 @export var armor_pen: int = 0 # ignores this much of the target's armor
+@export var crit_chance: int = 0 # percent chance an attack crits
+@export var crit_damage: int = 150 # percent damage on crit (150 = 1.5x)
 
 @export_group("Skills")
 @export var skills: Array[SkillDefinition] = []

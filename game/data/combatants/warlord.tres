@@ -16,5 +16,7 @@ attack_per_tile = 6
 heal_per_tile = 4
 energy_per_tile = 5
 armor = 2
+crit_chance = 12
+crit_damage = 160
 skills = Array[ExtResource("2_skill")]([ExtResource("3_s1")])
 ai_profile = ExtResource("4_ai")

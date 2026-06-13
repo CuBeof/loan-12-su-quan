@@ -49,6 +49,8 @@ static func stat_block_from_def(def: CombatantDefinition) -> StatBlock:
 	block.set_base(StatTypes.Stat.ENERGY_PER_TILE, def.energy_per_tile)
 	block.set_base(StatTypes.Stat.ARMOR, def.armor)
 	block.set_base(StatTypes.Stat.ARMOR_PEN, def.armor_pen)
+	block.set_base(StatTypes.Stat.CRIT_CHANCE, def.crit_chance)
+	block.set_base(StatTypes.Stat.CRIT_DAMAGE, def.crit_damage)
 	return block
 
 

@@ -27,6 +27,10 @@ const OVERSHOOT_FACTOR := 0.16 # how far past the target a gem falls before boun
 
 var logic: BoardLogic
 var input_enabled: bool = true: set = _set_input_enabled # disabled during the enemy turn
+# Async handler(sources: Array[Vector2], attack_tiles: int) the battle sets
+# to fly swords + apply attack damage when a wave clears attack tiles. The
+# board awaits it BEFORE the clear/refill so damage lands first.
+var attack_vfx_handler: Callable = Callable()
 
 var _tiles: Dictionary = {} # Vector2i -> TileView
 var _cell_px: float = 64.0
@@ -216,6 +220,11 @@ func _play_events(events: Array[BoardEvent]) -> void:
 				AudioManager.play_sfx(&"bomb_primed")
 				await _anim_bomb_primed(event.data.cells)
 			BoardEvent.Kind.CLEARED:
+				var counts: Dictionary = event.data.get("counts", {})
+				var attack_tiles := int(counts.get(TileTypes.Type.ATTACK, 0))
+				if attack_tiles > 0 and attack_vfx_handler.is_valid():
+					# Swords fly + damage lands before the tiles clear/refill.
+					await attack_vfx_handler.call(_attack_cell_positions(event.data.cells), attack_tiles)
 				AudioManager.play_sfx(&"tile_match")
 				await _anim_clear(event.data.cells)
 			BoardEvent.Kind.SPECIAL_CREATED:
@@ -227,6 +236,17 @@ func _play_events(events: Array[BoardEvent]) -> void:
 				AudioManager.play_sfx(&"tile_land")
 			BoardEvent.Kind.SHUFFLED:
 				await _anim_shuffle(event.data.layout)
+
+
+## Global positions of the attack-type tiles among the cleared cells —
+## where the swords launch from.
+func _attack_cell_positions(cells: Array) -> Array:
+	var out: Array = []
+	for cell: Vector2i in cells:
+		var view: TileView = _tiles.get(cell)
+		if view != null and view.type == TileTypes.Type.ATTACK:
+			out.append(view.global_position)
+	return out
 
 
 func _anim_swap(a: Vector2i, b: Vector2i) -> void:
