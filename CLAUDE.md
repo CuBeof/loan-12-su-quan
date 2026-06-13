@@ -41,7 +41,7 @@ data/       (Data — Resource definition + .tres; nguồn chân lý)
 common/autoload/  (Infrastructure — EventBus, Audio, Save, Scene, Settings)
 ```
 
-1. **`game/core/` thuần logic**: chỉ `RefCounted`/`Resource`, không kế thừa `Node`, không đụng SceneTree, không `res://` path, không texture/âm thanh. Lý do: unit test headless và AI phải mô phỏng nước đi trên bản sao lưới không cần render.
+1. **`game/core/` thuần logic**: chỉ `RefCounted`/`Resource`, không kế thừa `Node`, không đụng SceneTree, không `res://` path, không texture/âm thanh. Lý do: unit test headless và AI phải mô phỏng nước đi trên bản sao lưới không cần render. AI (`core/ai/`) dùng `BoardLogic.clone()` để thử nước trên bản sao, không bao giờ đụng bàn cờ thật; tính cách điều khiển bằng `AIProfile` (.tres), không hardcode.
 2. **Tọa độ lưới luôn `Vector2i`**, không bao giờ dùng `Vector2`/float cho ô cờ.
 3. **View là máy chiếu**: `BoardView` nghe signal từ `BoardLogic` rồi phát animation; không tự suy luận luật. Logic chờ signal `animations_finished` từ view trước khi sang bước kế.
 4. Kiểm tra match/thắng-thua chỉ chạy khi có nước đi — **không kiểm tra trong `_process`**.

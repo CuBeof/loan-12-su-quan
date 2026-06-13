@@ -20,3 +20,6 @@ extends Resource
 
 @export_group("Skills")
 @export var skills: Array[SkillDefinition] = []
+
+@export_group("AI")
+@export var ai_profile: AIProfile # null = balanced default (AIProfile.new())

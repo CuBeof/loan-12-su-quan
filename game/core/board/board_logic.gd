@@ -157,6 +157,22 @@ func snapshot() -> Dictionary:
 	return layout
 
 
+## Deep copy for AI lookahead: the AI simulates try_move() on a clone so
+## the real board (and its RNG) is untouched. Cloned board uses its own
+## RNG seeded from this one, so a simulation is repeatable.
+func clone() -> BoardLogic:
+	var copy := BoardLogic.new()
+	copy.size = size
+	copy.valid_cells = valid_cells.duplicate()
+	copy.refill_enabled = refill_enabled
+	copy.rng = RandomNumberGenerator.new()
+	copy.rng.seed = rng.seed
+	copy.rng.state = rng.state
+	for cell: Vector2i in grid:
+		copy.grid[cell] = grid[cell].clone()
+	return copy
+
+
 func _adjacent(a: Vector2i, b: Vector2i) -> bool:
 	var d := (a - b).abs()
 	return d.x + d.y == 1

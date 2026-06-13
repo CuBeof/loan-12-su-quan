@@ -26,6 +26,8 @@ var _turns: TurnManager
 var _player_def_used: CombatantDefinition
 var _enemy_def_used: CombatantDefinition
 var _skill_buttons: Array[Button] = []
+var _enemy_profile: AIProfile
+var _enemy_skill_data: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -48,6 +50,9 @@ func _ready() -> void:
 				enemy_state.stats.add_modifier(mod)
 	_turns = TurnManager.new()
 	_turns.setup(player_state, enemy_state, randi())
+	_enemy_profile = _enemy_def_used.ai_profile if _enemy_def_used.ai_profile != null else AIProfile.new()
+	for skill in _enemy_def_used.skills:
+		_enemy_skill_data.append({"cost": skill.energy_cost, "effects": skill.effects, "ref": skill})
 	_player_panel.setup(_player_def_used)
 	_enemy_panel.setup(_enemy_def_used)
 	_retreat_button.text = tr(&"UI_RETREAT")
@@ -153,33 +158,19 @@ func _enemy_take_turn() -> void:
 	await get_tree().create_timer(ENEMY_THINK_TIME).timeout
 	if _turns.outcome != TurnManager.Outcome.ONGOING:
 		return
-	# Placeholder AI: cast an affordable, still-useful skill, else swap.
-	# Phase 3 replaces this with the behavior-profile move scorer.
-	for skill in _enemy_def_used.skills:
-		if _turns.can_cast(skill.energy_cost) and _skill_worth_casting(skill):
-			_cast_skill(skill)
-			return
-	var move := _turns.choose_enemy_move(_board.logic.grid)
-	if move.is_empty():
-		_turns.pass_turn()
-		_refresh()
-		_continue_battle()
-		return
-	_board.play_move(move.a, move.b)
-
-
-## False only when every effect is a status its target already has —
-## prevents the AI from wasting energy re-casting active buffs.
-func _skill_worth_casting(skill: SkillDefinition) -> bool:
-	for raw in skill.effects:
-		var data: Dictionary = raw
-		if str(data.get("kind", "")) != "status":
-			return true
-		var status_kind := StatusEffect.kind_from_name(StringName(str(data.get("status", ""))))
-		var target := _turns.opponent() if str(data.get("target", "enemy")) == "enemy" else _turns.mover()
-		if status_kind >= 0 and not target.has_status(status_kind):
-			return true
-	return false
+	# Behavior-profile AI: scores moves by the enemy's AIProfile weights
+	# and may cast a useful skill (see AIController).
+	var action := AIController.choose_action(_board.logic, _turns.enemy, _turns.player,
+			_enemy_skill_data, _enemy_profile, _turns.rng)
+	match str(action.get("type", "pass")):
+		"skill":
+			_cast_skill(_enemy_skill_data[int(action.index)].ref)
+		"move":
+			_board.play_move(action.a, action.b)
+		_:
+			_turns.pass_turn()
+			_refresh()
+			_continue_battle()
 
 
 func _show_effects(effects: Array[Dictionary]) -> void:

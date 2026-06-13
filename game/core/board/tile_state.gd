@@ -19,3 +19,13 @@ static func make(type_: int, special_: int = TileTypes.Special.NONE) -> TileStat
 	tile.type = type_
 	tile.special = special_
 	return tile
+
+
+## Field-for-field copy (keeps id) for board cloning during AI simulation.
+func clone() -> TileState:
+	var tile := TileState.new()
+	tile.id = id
+	tile.type = type
+	tile.special = special
+	tile.detonating = detonating
+	return tile

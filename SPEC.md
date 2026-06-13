@@ -88,6 +88,7 @@ Vật phẩm trong balo thể hiện ở dạng lưới, nhấn vào hiển th�
 # Đối thủ
 - Là AI do máy điều khiển chiến đấu với người chơi
 - Có nhiều loại nhân vật với các chỉ số, kỹ năng, lời thoại, hành vi khác nhau. Các hành vi có thể là: tên cướp có máu thấp hơn các hệ khác, nhưng có khả năng cướp vàng từ người chơi, khi hắn cướp được một lượng vàng nhất định hoặc người chơi hết vàng sẽ bỏ trốn, đánh thắng hắn sẽ lấy lại được vàng, xu hướng ghép các đồng vàng, kỹ năng liên quan đến vàng.
+- **Hành vi AI là data-driven** qua `AIProfile` (.tres): trọng số ưu tiên từng loại tile, độ khó (xác suất chọn nước tốt nhất vs ngẫu nhiên), xu hướng dùng skill. AI mô phỏng từng nước đi trên bản sao bàn cờ rồi chấm điểm theo profile. Thêm tính cách mới = thêm `.tres`, không sửa code. Hai tính cách demo hiện có: **ưu tiên tấn công** (sứ quân) và **ưu tiên hồi máu** (tên cướp — trọng số máu cao, càng ít máu càng ưu tiên ghép viên máu).
 
 # Hệ thống tính điểm, thiết kế quái vật/boss và cân bằng
 Sẽ thực hiện ở giai đoạn sau.

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AIProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/ai/ai_profile.gd" id="1_ai"]
+
+[resource]
+script = ExtResource("1_ai")
+difficulty = 0.75
+skill_chance = 0.6
+extra_turn_bonus = 5.0
+special_bonus = 3.0
+weight_attack = 1.5
+weight_health = 5.0
+weight_gold = 1.0
+weight_energy = 2.0
+weight_exp = 0.5
+low_hp_heal_scale = 4.0
