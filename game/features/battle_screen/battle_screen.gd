@@ -126,27 +126,37 @@ static func _make_state(def: CombatantDefinition) -> CombatantState:
 
 
 func _on_move_resolved(result: MoveResult) -> void:
-	# Attack damage was already applied per CLEARED wave by _play_wave_vfx;
-	# here we apply only the support effects (heal/energy/gold/xp + poison).
-	var effects := _turns.apply_support(result)
+	# Attack and support were already applied per CLEARED wave during the
+	# animation; here we just do end-of-move bookkeeping (poison + turn pass).
+	var effects := _turns.apply_turn_end(result)
 	_show_effects(effects)
 	_info_label.text = tr(&"UI_EXTRA_TURN") if result.extra_turn else ""
 	_refresh()
 	_continue_battle()
 
 
-## Board callback per CLEARED wave: fly the matched tiles' VFX. Support
-## orbs (heal/energy/gold/exp) fly to the mover's panel as cosmetics (the
-## numbers apply later in apply_support); the attack swords apply their
-## damage and are awaited so it lands before the board clears/refills.
+## Maps a support EffectKind to its tile type + orb color.
+const _SUPPORT_VFX := {
+	EffectResolver.EffectKind.HEAL: [TileTypes.Type.HEALTH, HEAL_COLOR],
+	EffectResolver.EffectKind.ENERGY: [TileTypes.Type.ENERGY, ENERGY_COLOR],
+	EffectResolver.EffectKind.GOLD: [TileTypes.Type.GOLD, GOLD_COLOR],
+	EffectResolver.EffectKind.XP: [TileTypes.Type.EXP, EXP_COLOR],
+}
+
+
+## Board callback per CLEARED wave: apply the wave's effects immediately
+## (so gold/xp bank even on a winning cascade) and fly the matching VFX.
+## Support orbs/popups show the real applied amounts; the attack swords
+## apply their damage and are awaited so it lands before the refill.
 func _play_wave_vfx(counts: Dictionary, by_type: Dictionary) -> void:
-	var mover := _turns.mover()
 	var mover_panel := _player_panel if _turns.turn_owner == TurnManager.Owner.PLAYER else _enemy_panel
 	var mover_target := mover_panel.global_position + mover_panel.size * 0.5
-	_fly_resource_orbs(by_type, TileTypes.Type.HEALTH, HEAL_COLOR, mover_target, mover.heal_per_tile)
-	_fly_resource_orbs(by_type, TileTypes.Type.ENERGY, ENERGY_COLOR, mover_target, mover.energy_per_tile)
-	_fly_resource_orbs(by_type, TileTypes.Type.GOLD, GOLD_COLOR, mover_target, 1)
-	_fly_resource_orbs(by_type, TileTypes.Type.EXP, EXP_COLOR, mover_target, 1)
+	for effect in _turns.apply_support_wave(counts):
+		var info: Variant = _SUPPORT_VFX.get(effect.kind)
+		if info != null and int(effect.amount) > 0:
+			_fly_resource_orbs(by_type, int(info[0]), info[1], mover_target)
+			_spawn_gain_popup(mover_target, int(effect.amount), info[1])
+	_refresh()
 	var attack_tiles := int(counts.get(TileTypes.Type.ATTACK, 0))
 	if attack_tiles > 0:
 		await _play_attack(attack_tiles, by_type.get(TileTypes.Type.ATTACK, []))
@@ -182,9 +192,10 @@ func _play_attack(count: int, sources: Array) -> void:
 	_refresh()
 
 
-## Cosmetic: fly up to 5 orbs of one resource type to the owner's panel,
-## with a "+N" gain popup. The actual stat change happens in apply_support.
-func _fly_resource_orbs(by_type: Dictionary, type: int, color: Color, target: Vector2, per_tile: int) -> void:
+## Flies up to 5 orbs of one resource type from the matched tiles to the
+## owner's panel. The amount was already applied; the popup is spawned by
+## the caller with the real value.
+func _fly_resource_orbs(by_type: Dictionary, type: int, color: Color, target: Vector2) -> void:
 	var positions: Array = by_type.get(type, [])
 	if positions.is_empty():
 		return
@@ -193,7 +204,6 @@ func _fly_resource_orbs(by_type: Dictionary, type: int, color: Color, target: Ve
 		var orb := ResourceOrb.new()
 		_vfx_layer.add_child(orb)
 		orb.launch(positions[i], target, color, i * 0.03)
-	_spawn_gain_popup(target, positions.size() * per_tile, color)
 
 
 func _spawn_damage_popup(at: Vector2, amount: int, crit: bool) -> void:

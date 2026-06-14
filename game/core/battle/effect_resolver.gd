@@ -7,12 +7,12 @@ extends RefCounted
 enum EffectKind { DAMAGE, HEAL, ENERGY, GOLD, XP, PENALTY_DAMAGE, STATUS_APPLIED, STAT_CHANGED, TURN_FROZEN }
 
 
-## Support effects only (heal/energy/gold/xp for the mover). Attack
-## damage is applied separately and earlier — TurnManager.apply_attack_wave
-## fires per CLEARED wave so the sword/crit lands before the board refills.
-static func apply_support(result: MoveResult, mover: CombatantState, _opponent: CombatantState) -> Array[Dictionary]:
+## Support effects (heal/energy/gold/xp) for one CLEARED wave's tile
+## counts, applied to the mover immediately. Attack damage is handled
+## separately by TurnManager.apply_attack_wave. Applied per wave (not at
+## move end) so resources collected in a winning move's cascade still bank.
+static func apply_support(counts: Dictionary, mover: CombatantState) -> Array[Dictionary]:
 	var effects: Array[Dictionary] = []
-	var counts := result.cleared_counts
 
 	var health_tiles := int(counts.get(TileTypes.Type.HEALTH, 0))
 	if health_tiles > 0:

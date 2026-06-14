@@ -57,21 +57,35 @@ func apply_attack_wave(attack_tiles: int) -> Dictionary:
 	}
 
 
-## Applies the mover's support effects (heal/energy/gold/xp) and the swap
-## poison proc, then passes the turn. Attack damage is handled separately
-## by apply_attack_wave during animation, so it is NOT re-applied here.
-func apply_support(result: MoveResult) -> Array[Dictionary]:
+## Applies one CLEARED wave's support tiles (heal/energy/gold/xp) to the
+## current mover, immediately. NOT guarded on outcome, so gold/xp matched
+## in a winning move's cascade still bank. Returns the effects.
+func apply_support_wave(counts: Dictionary) -> Array[Dictionary]:
+	return EffectResolver.apply_support(counts, mover())
+
+
+## End-of-move bookkeeping: the swap poison proc, then pass the turn
+## (unless an extra turn was earned or the battle ended). Attack and
+## support were already applied per wave during the animation.
+func apply_turn_end(result: MoveResult) -> Array[Dictionary]:
 	if outcome != Outcome.ONGOING:
 		return []
-	var effects := EffectResolver.apply_support(result, mover(), opponent())
-	effects.append_array(_proc_swap_statuses(mover()))
+	var effects := _proc_swap_statuses(mover())
 	_check_outcome()
 	if outcome == Outcome.ONGOING and not result.extra_turn:
 		pass_turn()
 	return effects
 
 
-## Full resolution in one call (no animation): attack waves + support.
+## Convenience for non-animated paths/tests: support for the whole move
+## plus the end-of-move bookkeeping.
+func apply_support(result: MoveResult) -> Array[Dictionary]:
+	var effects := apply_support_wave(result.cleared_counts)
+	effects.append_array(apply_turn_end(result))
+	return effects
+
+
+## Full resolution in one call (no animation): attack + support + turn end.
 ## Used by headless tests and any non-animated path.
 func apply_move(result: MoveResult) -> Array[Dictionary]:
 	if outcome != Outcome.ONGOING:
