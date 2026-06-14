@@ -8,12 +8,15 @@ extends RefCounted
 ##   already detonating gets cleared together with its second 3x3 blast.
 ## - A transform tile caught in a blast activates passively, consuming
 ##   every tile of one random type.
-## Returns {"cleared": Array[Vector2i], "primed": Array[Vector2i]}.
+## Returns {"cleared": [...], "primed": [...], "activations": [...]} where
+## each activation is {kind: Special, cell: Vector2i} so the view can play
+## the matching beam/ring at the right place.
 
 
 static func expand_clears(grid: Dictionary, initial: Array[Vector2i], rng: RandomNumberGenerator) -> Dictionary:
 	var cleared := {}
 	var primed := {}
+	var activations: Array[Dictionary] = []
 	var queue: Array[Vector2i] = initial.duplicate()
 	while not queue.is_empty():
 		var cell: Vector2i = queue.pop_back()
@@ -23,11 +26,13 @@ static func expand_clears(grid: Dictionary, initial: Array[Vector2i], rng: Rando
 		match tile.special:
 			TileTypes.Special.SWEEP_H:
 				cleared[cell] = true
+				activations.append({"kind": TileTypes.Special.SWEEP_H, "cell": cell})
 				for other: Vector2i in grid.keys():
 					if other.y == cell.y:
 						queue.append(other)
 			TileTypes.Special.SWEEP_V:
 				cleared[cell] = true
+				activations.append({"kind": TileTypes.Special.SWEEP_V, "cell": cell})
 				for other: Vector2i in grid.keys():
 					if other.x == cell.x:
 						queue.append(other)
@@ -37,12 +42,14 @@ static func expand_clears(grid: Dictionary, initial: Array[Vector2i], rng: Rando
 				else:
 					tile.detonating = true
 					primed[cell] = true
+				activations.append({"kind": TileTypes.Special.BOMB, "cell": cell})
 				for dy in range(-1, 2):
 					for dx in range(-1, 2):
 						if dx != 0 or dy != 0:
 							queue.append(cell + Vector2i(dx, dy))
 			TileTypes.Special.TRANSFORM:
 				cleared[cell] = true
+				activations.append({"kind": TileTypes.Special.TRANSFORM, "cell": cell})
 				var target_type := rng.randi_range(0, TileTypes.TYPE_COUNT - 1)
 				for other: Vector2i in grid.keys():
 					var other_tile: TileState = grid[other]
@@ -57,4 +64,4 @@ static func expand_clears(grid: Dictionary, initial: Array[Vector2i], rng: Rando
 	var primed_list: Array[Vector2i] = []
 	for cell: Vector2i in primed.keys():
 		primed_list.append(cell)
-	return {"cleared": cleared_list, "primed": primed_list}
+	return {"cleared": cleared_list, "primed": primed_list, "activations": activations}

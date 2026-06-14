@@ -222,6 +222,7 @@ func _play_events(events: Array[BoardEvent]) -> void:
 				await _anim_bomb_primed(event.data.cells)
 			BoardEvent.Kind.CLEARED:
 				var counts: Dictionary = event.data.get("counts", {})
+				_play_activations(event.data.get("activations", []))
 				if not counts.is_empty() and wave_vfx_handler.is_valid():
 					# VFX fly + attack damage lands before the tiles clear/refill.
 					await wave_vfx_handler.call(counts, _cells_by_type(event.data.cells))
@@ -281,6 +282,40 @@ func _anim_clear(cells: Array[Vector2i]) -> void:
 	await tween.finished
 	for view in views:
 		view.queue_free()
+
+
+## Plays the beam/ring for each special tile that activated this wave.
+func _play_activations(activations: Array) -> void:
+	for raw in activations:
+		var data: Dictionary = raw
+		var cell: Vector2i = data.get("cell", Vector2i.ZERO)
+		match int(data.get("kind", -1)):
+			TileTypes.Special.SWEEP_H:
+				AudioManager.play_sfx(&"sweep")
+				var y := _cell_to_pos(cell).y
+				var beam := SweepBeam.new()
+				add_child(beam)
+				beam.sweep(Vector2(_origin.x, y), Vector2(_origin.x + logic.size.x * _cell_px, y),
+						Color(0.95, 0.95, 1.0), _cell_px * 0.5)
+			TileTypes.Special.SWEEP_V:
+				AudioManager.play_sfx(&"sweep")
+				var x := _cell_to_pos(cell).x
+				var beam := SweepBeam.new()
+				add_child(beam)
+				beam.sweep(Vector2(x, _origin.y), Vector2(x, _origin.y + logic.size.y * _cell_px),
+						Color(0.95, 0.95, 1.0), _cell_px * 0.5)
+			TileTypes.Special.BOMB:
+				AudioManager.play_sfx(&"bomb")
+				var ring := BlastRing.new()
+				add_child(ring)
+				ring.position = _cell_to_pos(cell)
+				ring.blast(Color(1.0, 0.6, 0.2), _cell_px * 1.6)
+			TileTypes.Special.TRANSFORM:
+				AudioManager.play_sfx(&"bomb")
+				var ring := BlastRing.new()
+				add_child(ring)
+				ring.position = _cell_to_pos(cell)
+				ring.blast(Color(0.85, 0.5, 1.0), _cell_px * 2.0)
 
 
 ## A colored spark burst where a tile clears (juice for every match).

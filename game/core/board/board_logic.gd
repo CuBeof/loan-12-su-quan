@@ -188,6 +188,7 @@ func _swap_tiles(a: Vector2i, b: Vector2i) -> void:
 ## queued delayed area blasts (bomb + bomb combo).
 func _detonate_pending(result: MoveResult) -> void:
 	var initial: Array[Vector2i] = []
+	var activations: Array[Dictionary] = []
 	for tile in _pending_bombs:
 		var cell := _find_tile_cell(tile)
 		if cell.x >= 0:
@@ -196,12 +197,13 @@ func _detonate_pending(result: MoveResult) -> void:
 	for blast in _pending_blasts:
 		var center: Vector2i = blast.center
 		var radius: int = blast.radius
+		activations.append({"kind": TileTypes.Special.BOMB, "cell": center})
 		for cell: Vector2i in grid.keys():
 			if absi(cell.x - center.x) <= radius and absi(cell.y - center.y) <= radius:
 				initial.append(cell)
 	_pending_blasts.clear()
 	if not initial.is_empty():
-		_clear_cells(initial, result)
+		_clear_cells(initial, result, activations)
 
 
 func _find_tile_cell(tile: TileState) -> Vector2i:
@@ -242,7 +244,7 @@ func _clear_groups(groups: Array, result: MoveResult) -> void:
 		result.add(BoardEvent.Kind.SPECIAL_CREATED, {"cell": cell, "type": entry.type, "special": entry.special})
 
 
-func _clear_cells(initial: Array[Vector2i], result: MoveResult) -> void:
+func _clear_cells(initial: Array[Vector2i], result: MoveResult, extra_activations: Array = []) -> void:
 	var outcome := SpecialResolver.expand_clears(grid, initial, rng)
 	var primed: Array[Vector2i] = outcome.primed
 	if not primed.is_empty():
@@ -256,7 +258,9 @@ func _clear_cells(initial: Array[Vector2i], result: MoveResult) -> void:
 		result.tally(tile.type)
 		counts[tile.type] = int(counts.get(tile.type, 0)) + 1
 		grid.erase(cell)
-	result.add(BoardEvent.Kind.CLEARED, {"cells": cleared, "counts": counts})
+	var activations: Array = extra_activations.duplicate()
+	activations.append_array(outcome.activations)
+	result.add(BoardEvent.Kind.CLEARED, {"cells": cleared, "counts": counts, "activations": activations})
 
 
 ## Swap combos between special tiles (and TRANSFORM with anything).
@@ -316,25 +320,32 @@ func _execute_combo(a: Vector2i, b: Vector2i, result: MoveResult) -> void:
 	tile_b.special = TileTypes.Special.NONE
 
 	var cells: Array[Vector2i] = []
+	var activations: Array[Dictionary] = []
 	if both_bomb:
 		# Candy Crush: two big blasts (5x5, second one after refill);
 		# SPEC adds the extra turn.
 		result.extra_turn = true
 		_pending_blasts.append({"center": b, "radius": 2})
+		activations.append({"kind": TileTypes.Special.BOMB, "cell": b})
 		for cell: Vector2i in grid.keys():
 			if absi(cell.x - b.x) <= 2 and absi(cell.y - b.y) <= 2:
 				cells.append(cell)
 	elif both_sweep:
 		# Candy Crush: cross clear, one row + one column.
+		activations.append({"kind": TileTypes.Special.SWEEP_H, "cell": b})
+		activations.append({"kind": TileTypes.Special.SWEEP_V, "cell": b})
 		for cell: Vector2i in grid.keys():
 			if cell.y == b.y or cell.x == b.x:
 				cells.append(cell)
 	else:
 		# Candy Crush: bomb + sweeper = giant cross, 3 rows + 3 columns.
+		activations.append({"kind": TileTypes.Special.SWEEP_H, "cell": b})
+		activations.append({"kind": TileTypes.Special.SWEEP_V, "cell": b})
+		activations.append({"kind": TileTypes.Special.BOMB, "cell": b})
 		for cell: Vector2i in grid.keys():
 			if absi(cell.y - b.y) <= 1 or absi(cell.x - b.x) <= 1:
 				cells.append(cell)
-	_clear_cells(cells, result)
+	_clear_cells(cells, result, activations)
 
 
 func _fill_no_match() -> void:
