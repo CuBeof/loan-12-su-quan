@@ -43,6 +43,26 @@ MAP_BANDIT_CAMP,Bandit Camp,Trại cướp
 MAP_WARLORD_KEEP,Warlord Keep,Thành sứ quân
 MAP_MARKET,Market,Chợ phiên
 UI_BAG,Bag,Balo
+UI_SKILLS,Skills,Kỹ năng
+UI_UNLOCK,Unlock,Mở khóa
+UI_LEVEL_UP,Level up! +%d skill point(s),Lên cấp! +%d điểm kỹ năng
+SKILLTREE_TITLE,Skill Tree,Cây kỹ năng
+SKILLTREE_POINTS,Points: %d,Điểm: %d
+SKILLTREE_COST,Cost: %d points,Giá: %d điểm
+SKILLTREE_UNLOCKED,Unlocked,Đã mở khóa
+SKILLTREE_LOCKED,Locked — unlock prerequisites first,Bị khóa — mở điều kiện trước
+SKILL_WAR_CRY,War Cry,Tiếng thét xung trận
+SKILL_WAR_CRY_DESC,+2 attack per tile for the rest of the battle.,+2 sát thương mỗi viên tấn công đến hết trận.
+NODE_MIGHT,Might,Sức mạnh
+NODE_MIGHT_DESC,+2 attack per tile (permanent).,+2 sát thương mỗi viên tấn công (vĩnh viễn).
+NODE_MIGHT2,Greater Might,Đại lực
+NODE_MIGHT2_DESC,+3 more attack per tile (permanent).,+3 sát thương mỗi viên tấn công (vĩnh viễn).
+NODE_CRIT,Precision,Hiểm hóc
+NODE_CRIT_DESC,+10% critical hit chance (permanent).,+10% tỉ lệ chí mạng (vĩnh viễn).
+NODE_VIGOR,Vigor,Cường tráng
+NODE_VIGOR_DESC,+25 max HP (permanent).,+25 máu tối đa (vĩnh viễn).
+NODE_WARCRY,War Cry,Tiếng thét xung trận
+NODE_WARCRY_DESC,Unlocks the War Cry battle skill.,Mở khóa kỹ năng Tiếng thét xung trận.
 UI_GOLD_AMOUNT,Gold: %d,Vàng: %d
 UI_BUY,Buy,Mua
 UI_PRICE,%d gold,%d vàng

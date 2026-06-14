@@ -1,0 +1,132 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://features/skill_tree/skill_tree_screen.gd" id="1_st"]
+
+[node name="SkillTreeScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_st")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.1, 0.11, 0.16, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 24
+
+[node name="Layout" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="Margin/Layout"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BackButton" type="Button" parent="Margin/Layout/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="Title" type="Label" parent="Margin/Layout/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 26
+vertical_alignment = 1
+
+[node name="PointsLabel" type="Label" parent="Margin/Layout/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.76, 0.2, 1)
+theme_override_font_sizes/font_size = 20
+vertical_alignment = 1
+
+[node name="Graph" type="Control" parent="Margin/Layout"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PopupOverlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Center" type="CenterContainer" parent="PopupOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="PopupOverlay/Center"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+
+[node name="PanelMargin" type="MarginContainer" parent="PopupOverlay/Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="PopupBox" type="VBoxContainer" parent="PopupOverlay/Center/Panel/PanelMargin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PopupName" type="Label" parent="PopupOverlay/Center/Panel/PanelMargin/PopupBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+
+[node name="PopupDesc" type="Label" parent="PopupOverlay/Center/Panel/PanelMargin/PopupBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+
+[node name="PopupInfo" type="Label" parent="PopupOverlay/Center/Panel/PanelMargin/PopupBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.76, 0.2, 1)
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+
+[node name="PopupAction" type="Button" parent="PopupOverlay/Center/Panel/PanelMargin/PopupBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="PopupClose" type="Button" parent="PopupOverlay/Center/Panel/PanelMargin/PopupBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18

@@ -10,6 +10,7 @@ const INFO := "res://features/info_screen/info_screen.tscn"
 const BATTLE := "res://features/battle_screen/battle_screen.tscn"
 const SHOP := "res://features/shop/shop_screen.tscn"
 const INVENTORY := "res://features/inventory/inventory_screen.tscn"
+const SKILL_TREE := "res://features/skill_tree/skill_tree_screen.tscn"
 
 const FADE_TIME := 0.2
 

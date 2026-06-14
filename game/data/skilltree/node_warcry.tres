@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SkillTreeNode" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://data/skilltree/skill_tree_node.gd" id="1"]
+[ext_resource type="Resource" path="res://data/skills/war_cry.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"warcry"
+display_name_key = &"NODE_WARCRY"
+description_key = &"NODE_WARCRY_DESC"
+cost = 2
+prerequisites = Array[StringName]([&"might"])
+pos = Vector2(0.55, 0.52)
+stat_mods = Array[Dictionary]([])
+granted_skill = ExtResource("2")

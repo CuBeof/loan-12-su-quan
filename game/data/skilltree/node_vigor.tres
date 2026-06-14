@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SkillTreeNode" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/skilltree/skill_tree_node.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"vigor"
+display_name_key = &"NODE_VIGOR"
+description_key = &"NODE_VIGOR_DESC"
+cost = 1
+prerequisites = Array[StringName]([])
+pos = Vector2(0.78, 0.2)
+stat_mods = Array[Dictionary]([{"stat": "max_hp", "amount": 25}])

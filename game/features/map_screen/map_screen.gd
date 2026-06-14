@@ -29,6 +29,7 @@ const EDGES: Array[Vector2i] = [Vector2i(0, 1), Vector2i(1, 2), Vector2i(0, 3)]
 @onready var _graph: Control = %Graph
 @onready var _back_button: Button = %BackButton
 @onready var _bag_button: Button = %BagButton
+@onready var _skill_button: Button = %SkillButton
 @onready var _title: Label = %Title
 
 var _buttons: Array[Button] = []
@@ -38,8 +39,10 @@ func _ready() -> void:
 	_title.text = tr(&"MAP_TITLE")
 	_back_button.text = tr(&"UI_BACK")
 	_bag_button.text = tr(&"UI_BAG")
+	_skill_button.text = tr(&"UI_SKILLS")
 	_back_button.pressed.connect(func() -> void: SceneManager.goto(SceneManager.MAIN_MENU, false))
 	_bag_button.pressed.connect(func() -> void: SceneManager.goto(SceneManager.INVENTORY))
+	_skill_button.pressed.connect(func() -> void: SceneManager.goto(SceneManager.SKILL_TREE))
 	_graph.draw.connect(_draw_edges)
 	_graph.resized.connect(_layout_nodes)
 	for i in range(NODES.size()):

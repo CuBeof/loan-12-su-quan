@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SkillTreeNode" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://data/skilltree/skill_tree_node.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"might"
+display_name_key = &"NODE_MIGHT"
+description_key = &"NODE_MIGHT_DESC"
+cost = 1
+prerequisites = Array[StringName]([])
+pos = Vector2(0.3, 0.2)
+stat_mods = Array[Dictionary]([{"stat": "attack_per_tile", "amount": 2}])

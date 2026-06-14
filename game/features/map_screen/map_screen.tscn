@@ -54,6 +54,12 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 26
 vertical_alignment = 1
 
+[node name="SkillButton" type="Button" parent="Margin/Layout/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
 [node name="BagButton" type="Button" parent="Margin/Layout/Header"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)

@@ -31,6 +31,7 @@ const EXP_COLOR := Color(0.63, 0.4, 0.84)
 var _turns: TurnManager
 var _player_def_used: CombatantDefinition
 var _enemy_def_used: CombatantDefinition
+var _player_skills: Array[SkillDefinition] = []
 var _skill_buttons: Array[Button] = []
 var _enemy_profile: AIProfile
 var _enemy_skill_data: Array[Dictionary] = []
@@ -59,6 +60,8 @@ func _ready() -> void:
 	_enemy_profile = _enemy_def_used.ai_profile if _enemy_def_used.ai_profile != null else AIProfile.new()
 	for skill in _enemy_def_used.skills:
 		_enemy_skill_data.append({"cost": skill.energy_cost, "effects": skill.effects, "ref": skill})
+	# The player's skills include any unlocked from the skill tree.
+	_player_skills = GameState.player_skills() if GameState.profile != null else _player_def_used.skills
 	_player_panel.setup(_player_def_used)
 	_enemy_panel.setup(_enemy_def_used)
 	_retreat_button.text = tr(&"UI_RETREAT")
@@ -74,7 +77,7 @@ func _ready() -> void:
 
 
 func _build_skill_bar() -> void:
-	for skill in _player_def_used.skills:
+	for skill in _player_skills:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(0, 52)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -90,7 +93,7 @@ func _update_skill_buttons() -> void:
 	var castable := _turns.outcome == TurnManager.Outcome.ONGOING \
 			and _turns.turn_owner == TurnManager.Owner.PLAYER
 	for i in range(_skill_buttons.size()):
-		var skill: SkillDefinition = _player_def_used.skills[i]
+		var skill: SkillDefinition = _player_skills[i]
 		_skill_buttons[i].disabled = not castable or not _turns.can_cast(skill.energy_cost)
 
 
@@ -297,12 +300,13 @@ func _end_battle() -> void:
 	if player_won:
 		GameState.mark_node_cleared(GameState.current_node)
 	var profile := GameState.profile
+	var levels_gained := 0
 	if profile != null:
 		# In-battle buffs (skills) expire; gear/item/NPC modifiers stay.
 		profile.stats.clear_lifetime(StatTypes.Lifetime.BATTLE)
 		if player_won:
 			profile.gold += _turns.player.gold
-			profile.xp += _turns.player.xp
+			levels_gained = GameState.award_xp(_turns.player.xp) # banks XP + processes level-ups
 			profile.current_hp = _turns.player.hp # SPEC: lost HP persists
 		else:
 			profile.current_hp = -1 # full restore on defeat until the lives system lands (TODO)
@@ -311,6 +315,8 @@ func _end_battle() -> void:
 	_rewards_label.visible = player_won
 	if player_won:
 		_rewards_label.text = tr(&"UI_REWARDS") % [_turns.player.gold, _turns.player.xp]
+		if levels_gained > 0:
+			_rewards_label.text += "\n" + tr(&"UI_LEVEL_UP") % levels_gained
 	_result_overlay.visible = true
 	EventBus.battle_ended.emit(player_won)
 
