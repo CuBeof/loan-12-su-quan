@@ -38,11 +38,14 @@ var crit_chance: int:
 var crit_damage: int:
 	get:
 		return stats.get_value(StatTypes.Stat.CRIT_DAMAGE)
+var luck: int:
+	get:
+		return stats.get_value(StatTypes.Stat.LUCK)
 
 
 static func make(max_hp_: int, attack_per_tile_: int, heal_per_tile_: int,
 		energy_per_tile_: int, max_energy_: int, armor_: int = 0, armor_pen_: int = 0,
-		crit_chance_: int = 0, crit_damage_: int = 150) -> CombatantState:
+		crit_chance_: int = 0, crit_damage_: int = 150, luck_: int = 0) -> CombatantState:
 	var state := CombatantState.new()
 	state.stats.set_base(StatTypes.Stat.MAX_HP, max_hp_)
 	state.stats.set_base(StatTypes.Stat.ATTACK_PER_TILE, attack_per_tile_)
@@ -53,6 +56,7 @@ static func make(max_hp_: int, attack_per_tile_: int, heal_per_tile_: int,
 	state.stats.set_base(StatTypes.Stat.ARMOR_PEN, armor_pen_)
 	state.stats.set_base(StatTypes.Stat.CRIT_CHANCE, crit_chance_)
 	state.stats.set_base(StatTypes.Stat.CRIT_DAMAGE, crit_damage_)
+	state.stats.set_base(StatTypes.Stat.LUCK, luck_)
 	state.hp = state.max_hp
 	return state
 

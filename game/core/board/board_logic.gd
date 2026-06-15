@@ -14,7 +14,6 @@ extends RefCounted
 
 const MAX_CASCADES := 50
 const INVALID_SWAP_PENALTY_ATTACK_TILES := 2 # rejected swap = enemy attack
-const ENHANCED_SPAWN_CHANCE := 0.08 # chance a spawned tile is enhanced
 const DESTROY_COUNT := 3 # tiles destroyed by match-5 / L-T
 const AROUND_RADIUS := 2 # L/T destroys within this Chebyshev radius of center
 
@@ -23,7 +22,9 @@ var valid_cells: Array[Vector2i] = [] # board shape (holes excluded), ordered y 
 var grid: Dictionary = {} # Vector2i -> TileState
 var rng := RandomNumberGenerator.new()
 var refill_enabled: bool = true # tests disable to keep boards deterministic
-var enhanced_enabled: bool = true # tests disable for deterministic counts
+# Set by the battle layer each turn (EnhancedRate); 0 = no enhanced gems.
+var enhanced_chance: float = 0.0 # per-spawn chance a refilled gem is enhanced
+var match_enhance_chance: float = 0.0 # chance to upgrade one matched tile
 
 
 func init_shape(board_size: Vector2i, blocked: Array[Vector2i] = []) -> void:
@@ -87,9 +88,16 @@ func _resolve(result: MoveResult, first_groups: Array) -> void:
 func _resolve_wave(groups: Array, combo: int, result: MoveResult) -> void:
 	var to_clear := {} # Vector2i -> true
 	var lightning: Array[Vector2i] = []
+	var upgraded: Array[Vector2i] = []
 	var grants_extra := false
 
 	for group: MatchFinder.MatchGroup in groups:
+		# Small chance to upgrade one matched tile to enhanced right before it
+		# clears, so that match counts double for it.
+		if match_enhance_chance > 0.0 and rng.randf() < match_enhance_chance:
+			var cell: Vector2i = group.cells[rng.randi_range(0, group.cells.size() - 1)]
+			grid[cell].enhanced = true
+			upgraded.append(cell)
 		for cell in group.cells:
 			to_clear[cell] = true
 		if group.has_intersection:
@@ -123,6 +131,7 @@ func _resolve_wave(groups: Array, combo: int, result: MoveResult) -> void:
 		"counts": counts,
 		"combo": combo,
 		"lightning": lightning,
+		"upgraded": upgraded,
 		"extra_turn": grants_extra,
 	})
 
@@ -149,7 +158,7 @@ func apply_gravity(result: MoveResult) -> void:
 		if refill_enabled:
 			for i in range(write, column.size()):
 				var cell := column[i]
-				var enhanced := enhanced_enabled and rng.randf() < ENHANCED_SPAWN_CHANCE
+				var enhanced := rng.randf() < enhanced_chance
 				var tile := TileState.make(rng.randi_range(0, TileTypes.TYPE_COUNT - 1), enhanced)
 				grid[cell] = tile
 				spawns.append({"cell": cell, "type": tile.type, "enhanced": tile.enhanced})
@@ -210,7 +219,8 @@ func clone() -> BoardLogic:
 	copy.size = size
 	copy.valid_cells = valid_cells.duplicate()
 	copy.refill_enabled = refill_enabled
-	copy.enhanced_enabled = enhanced_enabled
+	copy.enhanced_chance = enhanced_chance
+	copy.match_enhance_chance = match_enhance_chance
 	copy.rng = RandomNumberGenerator.new()
 	copy.rng.seed = rng.seed
 	copy.rng.state = rng.state
@@ -273,7 +283,7 @@ func _fill_no_match() -> void:
 		var up2: TileState = grid.get(cell + Vector2i.UP * 2)
 		if up1 != null and up2 != null and up1.type == up2.type:
 			banned[up1.type] = true
-		var enhanced := enhanced_enabled and rng.randf() < ENHANCED_SPAWN_CHANCE
+		var enhanced := rng.randf() < enhanced_chance
 		grid[cell] = TileState.make(_random_type_excluding(banned), enhanced)
 
 

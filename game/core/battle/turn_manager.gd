@@ -13,6 +13,7 @@ var player: CombatantState
 var enemy: CombatantState
 var turn_owner: int = Owner.PLAYER
 var turn_number: int = 1
+var total_moves: int = 0 # moves+casts by both sides (drives enhanced-gem ramp)
 var outcome: int = Outcome.ONGOING
 var rng := RandomNumberGenerator.new()
 
@@ -26,6 +27,7 @@ func setup(player_: CombatantState, enemy_: CombatantState, seed_value: int = 0)
 	rng.seed = seed_value
 	turn_owner = Owner.PLAYER
 	turn_number = 1
+	total_moves = 0
 	outcome = Outcome.ONGOING
 	_bonus_moves = 0
 	_bonus_granted = 0
@@ -77,6 +79,7 @@ func apply_support_wave(counts: Dictionary) -> Array[Dictionary]:
 func apply_turn_end(result: MoveResult) -> Array[Dictionary]:
 	if outcome != Outcome.ONGOING:
 		return []
+	total_moves += 1
 	var effects := _proc_swap_statuses(mover())
 	_check_outcome()
 	if outcome != Outcome.ONGOING:
@@ -142,6 +145,7 @@ func cast_skill(cost: int, effect_data: Array, board: BoardLogic, ends_turn: boo
 		return {}
 	var caster := mover()
 	caster.energy -= cost
+	total_moves += 1
 	var cast_outcome := SkillResolver.cast(effect_data, caster, opponent(), board, rng)
 	_check_outcome()
 	if outcome == Outcome.ONGOING and ends_turn:

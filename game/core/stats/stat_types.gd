@@ -13,6 +13,7 @@ enum Stat {
 	ARMOR_PEN,
 	CRIT_CHANCE, # percent (0-100) chance an attack crits
 	CRIT_DAMAGE, # percent damage on crit (150 = 1.5x)
+	LUCK, # raises enhanced-gem spawn and match-upgrade chances
 }
 
 ## How long a modifier lives — this is what the engine acts on:
@@ -31,6 +32,7 @@ const STAT_NAMES: Dictionary = {
 	Stat.ARMOR_PEN: &"armor_pen",
 	Stat.CRIT_CHANCE: &"crit_chance",
 	Stat.CRIT_DAMAGE: &"crit_damage",
+	Stat.LUCK: &"luck",
 }
 
 const LIFETIME_NAMES: Dictionary = {

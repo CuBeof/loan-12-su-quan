@@ -228,6 +228,10 @@ func _play_events(events: Array[BoardEvent]) -> void:
 				if not lightning.is_empty():
 					AudioManager.play_sfx(&"lightning")
 					_play_lightning(lightning)
+				var upgraded: Array = event.data.get("upgraded", [])
+				if not upgraded.is_empty():
+					AudioManager.play_sfx(&"enhance")
+					_show_upgrades(upgraded)
 				var counts: Dictionary = event.data.get("counts", {})
 				if not counts.is_empty() and wave_vfx_handler.is_valid():
 					# VFX fly + attack damage lands before the tiles clear/refill.
@@ -292,6 +296,21 @@ func _play_lightning(cells: Array) -> void:
 		var bolt := LightningBolt.new()
 		add_child(bolt)
 		bolt.strike(_cell_to_pos(cell))
+
+
+## A tile that got upgraded to enhanced right before clearing: flip its
+## look and pop a bright golden burst so the upgrade reads.
+func _show_upgrades(cells: Array) -> void:
+	for cell: Vector2i in cells:
+		var view: TileView = _tiles.get(cell)
+		if view == null:
+			continue
+		view.enhanced = true
+		view.queue_redraw()
+		var burst := ClearBurst.new()
+		add_child(burst)
+		burst.position = view.position
+		burst.burst(Color(1.0, 0.92, 0.4), _cell_px * 1.2)
 
 
 ## "Combo xN" flourish centered on the board.

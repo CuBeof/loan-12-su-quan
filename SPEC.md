@@ -14,7 +14,10 @@
   - **Ghép 4 thẳng**: ăn 4 viên + **thêm 1 lượt đi**.
   - **Ghép 5 thẳng**: ăn 5 viên + **thêm 1 lượt đi** + **phá huỷ 3 viên bất kỳ trên bàn cờ** (hiệu ứng sét).
   - **Ghép chữ L/T**: ăn các viên + **phá huỷ 3 viên ngẫu nhiên xung quanh vị trí match** (bán kính 2, hiệu ứng sét). Không thêm lượt.
-- **Viên cường hoá**: mỗi loại ngọc có phiên bản cường hoá, sinh ngẫu nhiên (khi refill/khởi tạo). Khi ăn, viên cường hoá tính **gấp đôi** giá trị viên thường (hiển thị viền sáng + sparkle).
+- **Viên cường hoá**: mỗi loại ngọc có phiên bản cường hoá, sinh ngẫu nhiên khi refill. Khi ăn tính **gấp đôi** giá trị (viền sáng + sparkle).
+  - **Tỉ lệ tăng theo số lượt**: chỉ bắt đầu xuất hiện sau khi tổng số lượt đi (cả người chơi + AI) vượt ngưỡng `WARMUP` (mặc định 4), rồi tăng dần theo số lượt.
+  - **Tỉ lệ thay đổi theo may mắn**: chỉ số **may mắn (luck)** của bên đang đi làm tăng tỉ lệ xuất hiện. Công thức trong `EnhancedRate` (core), số liệu là balance knob.
+  - **Nâng cấp khi match**: mỗi nhóm match có tỉ lệ nhỏ (cũng tăng theo luck) **biến 1 viên trong nhóm thành cường hoá ngay trước khi ăn**, khiến viên đó tính gấp đôi (nháy vàng).
 - **Combo**: sau mỗi lần refill mà vẫn có match (cascade), combo tăng 1 (combo bắt đầu từ 1 cho match từ swap). **Giá trị của mỗi đợt ăn được nhân với combo** của đợt đó.
 - **Giới hạn thêm lượt**: tối đa **+2 lượt** trong một lượt đi của người chơi — dù cascade vô tình tạo nhiều match-4/5 liên tiếp cũng chỉ cộng tối đa 2.
 - Swap không tạo được match nào (nước đi hỏng) sẽ bị hoàn về vị trí cũ và bị tính là đối phương tấn công với sát thương tương đương 2 viên tấn công.

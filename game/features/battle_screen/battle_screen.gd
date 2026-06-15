@@ -73,7 +73,16 @@ func _ready() -> void:
 	_retreat_button.pressed.connect(_on_retreat_pressed)
 	_play_again_button.pressed.connect(_on_play_again_pressed)
 	EventBus.battle_started.emit()
+	_update_board_luck()
 	_refresh()
+
+
+## Feeds the current mover's luck and the total move count into the board
+## so the enhanced-gem spawn/upgrade chances ramp over the match.
+func _update_board_luck() -> void:
+	var mover := _turns.mover()
+	_board.logic.enhanced_chance = EnhancedRate.spawn_chance(_turns.total_moves, mover.luck)
+	_board.logic.match_enhance_chance = EnhancedRate.match_chance(mover.luck)
 
 
 func _build_skill_bar() -> void:
@@ -252,6 +261,7 @@ func _continue_battle() -> void:
 		await get_tree().create_timer(0.8).timeout
 		_continue_battle()
 		return
+	_update_board_luck()
 	if _turns.turn_owner == TurnManager.Owner.ENEMY:
 		_board.input_enabled = false
 		_enemy_take_turn()

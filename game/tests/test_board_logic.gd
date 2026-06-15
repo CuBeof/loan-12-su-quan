@@ -164,6 +164,46 @@ func test_combo_multiplies_later_waves() -> void:
 	check_eq(total, 2 * wave2.data.cells.size(), "combo-2 wave value is doubled (no enhanced tiles)")
 
 
+func test_enhanced_rate_warms_up_and_scales_with_luck() -> void:
+	check_eq(EnhancedRate.spawn_chance(0, 99), 0.0, "no enhanced gems before the warm-up")
+	check_eq(EnhancedRate.spawn_chance(3, 99), 0.0, "still none just before the warm-up")
+	check(EnhancedRate.spawn_chance(4, 0) > 0.0, "enhanced gems start at the warm-up move")
+	check(EnhancedRate.spawn_chance(20, 0) > EnhancedRate.spawn_chance(4, 0), "the chance grows with moves")
+	check(EnhancedRate.spawn_chance(4, 10) > EnhancedRate.spawn_chance(4, 0), "luck raises the chance")
+	check(EnhancedRate.spawn_chance(9999, 9999) <= EnhancedRate.SPAWN_MAX + 0.0001, "the chance is capped")
+	check(EnhancedRate.match_chance(20) > EnhancedRate.match_chance(0), "luck raises the match-upgrade chance")
+
+
+func test_refill_spawns_enhanced_at_full_chance() -> void:
+	var board := BoardLogic.new()
+	board.init_shape(Vector2i(3, 3))
+	board.enhanced_chance = 1.0 # every refilled gem is enhanced
+	board.grid[Vector2i(0, 2)] = TileState.make(TY.ATTACK) # one tile at the bottom
+	var result := MoveResult.new()
+	board.apply_gravity(result)
+	check_eq(board.grid.size(), 9, "the board refills")
+	var enhanced_count := 0
+	for cell: Vector2i in board.grid.keys():
+		if board.grid[cell].enhanced:
+			enhanced_count += 1
+	check_eq(enhanced_count, 8, "the 8 refilled gems are all enhanced (the pre-placed one is not)")
+
+
+func test_match_upgrade_doubles_one_tile() -> void:
+	var board := make_board([
+		"aheha",
+		"hahah",
+		"gaghe",
+		"hgeha",
+	])
+	board.match_enhance_chance = 1.0 # always upgrade one matched tile
+	var result := board.try_move(Vector2i(1, 3), Vector2i(1, 2))
+	check(result.valid, "swap must be valid")
+	var first: Dictionary = _first_cleared(result)
+	check_eq(first.upgraded.size(), 1, "exactly one matched tile is upgraded")
+	check_eq(int(first.counts.get(TY.GOLD, 0)), 4, "the upgraded gold tile counts double (2+1+1)")
+
+
 func test_extra_turns_capped_in_result() -> void:
 	var result := MoveResult.new()
 	for i in range(5):
