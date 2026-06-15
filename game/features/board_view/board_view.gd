@@ -232,12 +232,19 @@ func _play_events(events: Array[BoardEvent]) -> void:
 				if not upgraded.is_empty():
 					AudioManager.play_sfx(&"enhance")
 					_show_upgrades(upgraded)
+				var cells: Array = event.data.cells
 				var counts: Dictionary = event.data.get("counts", {})
-				if not counts.is_empty() and wave_vfx_handler.is_valid():
-					# VFX fly + attack damage lands before the tiles clear/refill.
-					await wave_vfx_handler.call(counts, _cells_by_type(event.data.cells))
+				# Capture launch positions, then pop the gems (balloon: grow
+				# then shrink). The arrows/orbs launch from those positions at
+				# the same moment the gems start to enlarge.
+				var by_type := _cells_by_type(cells)
 				AudioManager.play_sfx(&"tile_match")
-				await _anim_clear(event.data.cells)
+				_balloon_pop(cells)
+				if not counts.is_empty() and wave_vfx_handler.is_valid():
+					# Attack damage lands (after the arrows fly) before the refill.
+					await wave_vfx_handler.call(counts, by_type)
+				else:
+					await get_tree().create_timer(_dur(0.26)).timeout
 			BoardEvent.Kind.GRAVITY:
 				await _anim_gravity(event.data.falls, event.data.spawns)
 				AudioManager.play_sfx(&"tile_land")
@@ -272,22 +279,22 @@ func _anim_swap(a: Vector2i, b: Vector2i) -> void:
 	await tween.finished
 
 
-func _anim_clear(cells: Array[Vector2i]) -> void:
-	var views: Array[TileView] = []
-	for cell in cells:
+## Balloon-pop: each cleared/destroyed gem grows a little then shrinks to
+## nothing. Fire-and-forget — tiles are removed from the map immediately so
+## gravity can run, and each tween frees its own view.
+func _balloon_pop(cells: Array) -> void:
+	for cell: Vector2i in cells:
 		var view: TileView = _tiles.get(cell)
-		if view != null:
-			_spawn_clear_burst(view)
-			views.append(view)
-			_tiles.erase(cell)
-	if views.is_empty():
-		return
-	var tween := create_tween().set_parallel(true).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
-	for view in views:
-		tween.tween_property(view, "scale", Vector2.ZERO, _dur(CLEAR_TIME))
-	await tween.finished
-	for view in views:
-		view.queue_free()
+		if view == null:
+			continue
+		_spawn_clear_burst(view)
+		_tiles.erase(cell)
+		var tween := create_tween()
+		tween.tween_property(view, "scale", Vector2.ONE * 1.4, _dur(0.11)) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(view, "scale", Vector2.ZERO, _dur(0.16)) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		tween.tween_callback(view.queue_free)
 
 
 ## Lightning strikes on the random tiles destroyed by a match-5 / L-T.
@@ -295,7 +302,7 @@ func _play_lightning(cells: Array) -> void:
 	for cell: Vector2i in cells:
 		var bolt := LightningBolt.new()
 		add_child(bolt)
-		bolt.strike(_cell_to_pos(cell))
+		bolt.strike(_cell_to_pos(cell), Color(0.7, 0.85, 1.0), _dur(0.5))
 
 
 ## A tile that got upgraded to enhanced right before clearing: flip its

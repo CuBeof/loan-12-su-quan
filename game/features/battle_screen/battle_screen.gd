@@ -171,8 +171,8 @@ func _play_wave_vfx(counts: Dictionary, by_type: Dictionary) -> void:
 		await _play_attack(attack_tiles, by_type.get(TileTypes.Type.ATTACK, []))
 
 
-## Flies swords from the matched attack tiles to the victim, applying the
-## (possibly critical) damage as they land.
+## Flies one arrow per matched attack tile, each from its own gem position,
+## toward the victim, applying the (possibly critical) damage as they land.
 func _play_attack(count: int, sources: Array) -> void:
 	var hit := _turns.apply_attack_wave(count)
 	if hit.is_empty():
@@ -181,15 +181,16 @@ func _play_attack(count: int, sources: Array) -> void:
 	var victim: CombatantState = hit.target
 	var panel := _panel_for(victim)
 	var target := panel.global_position + panel.size * 0.5
-	var sword_count := clampi(count, 1, 5)
 	var srcs: Array = sources if not sources.is_empty() else [target + Vector2(0.0, 160.0)]
+	# One arrow per attack gem (SPEC), each launched from its own position.
+	var arrow_count := srcs.size()
 	AudioManager.play_sfx(&"attack_swing")
 	const STAGGER := 0.04
-	for i in range(sword_count):
-		var sword := SwordVFX.new()
-		_vfx_layer.add_child(sword)
-		sword.launch(srcs[i % srcs.size()], target, crit, i * STAGGER)
-	await get_tree().create_timer(0.22 + STAGGER * (sword_count - 1) + 0.02).timeout
+	for i in range(arrow_count):
+		var arrow := ArrowVFX.new()
+		_vfx_layer.add_child(arrow)
+		arrow.launch(srcs[i], target, crit, i * STAGGER)
+	await get_tree().create_timer(0.24 + STAGGER * (arrow_count - 1) + 0.07).timeout
 	if bool(hit.get("immune", false)):
 		_info_label.text = tr(&"UI_IMMUNE")
 	else:
