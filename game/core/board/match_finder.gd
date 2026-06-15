@@ -1,8 +1,9 @@
 class_name MatchFinder
 extends RefCounted
-## Scans a grid (Dictionary[Vector2i, TileState]) for matches and decides
-## which special tile each match group should produce.
-## TRANSFORM tiles never take part in normal matches.
+## Scans a grid (Dictionary[Vector2i, TileState]) for matches. Reports each
+## match group's cells, its longest run length and whether it forms an L/T
+## (an intersection of a horizontal and a vertical run). Every tile matches
+## by type — there are no non-matchable special tiles.
 
 
 class Run:
@@ -15,43 +16,33 @@ class MatchGroup:
 	extends RefCounted
 	var cells: Array[Vector2i] = []
 	var type: int = 0
-	var special: int = TileTypes.Special.NONE
-	var special_cell: Vector2i = Vector2i(-1, -1)
 	var max_run: int = 0
 	var has_intersection: bool = false
+	var center: Vector2i = Vector2i.ZERO # the L/T junction, or the longest run's middle
 
 
-static func find_groups(grid: Dictionary, preferred: Array[Vector2i] = []) -> Array:
+static func find_groups(grid: Dictionary, _preferred: Array[Vector2i] = []) -> Array:
 	var runs := _find_runs(grid)
-	var groups := _merge_runs(runs)
+	var merged := _merge_runs(runs)
 	var result: Array = []
-	for raw: Dictionary in groups:
-		result.append(_build_group(grid, raw, preferred))
+	for raw: Dictionary in merged:
+		result.append(_build_group(grid, raw))
 	return result
-
-
-static func _matchable(grid: Dictionary, cell: Vector2i) -> TileState:
-	var tile: TileState = grid.get(cell)
-	if tile == null or tile.special == TileTypes.Special.TRANSFORM:
-		return null
-	return tile
 
 
 static func _find_runs(grid: Dictionary) -> Array:
 	var runs: Array = []
 	var directions: Array[Vector2i] = [Vector2i.RIGHT, Vector2i.DOWN]
 	for cell: Vector2i in grid.keys():
-		var tile := _matchable(grid, cell)
-		if tile == null:
-			continue
+		var tile: TileState = grid[cell]
 		for dir in directions:
-			var prev := _matchable(grid, cell - dir)
+			var prev: TileState = grid.get(cell - dir)
 			if prev != null and prev.type == tile.type:
 				continue # not the start of a run
 			var run_cells: Array[Vector2i] = [cell]
 			var next := cell + dir
 			while true:
-				var next_tile := _matchable(grid, next)
+				var next_tile: TileState = grid.get(next)
 				if next_tile == null or next_tile.type != tile.type:
 					break
 				run_cells.append(next)
@@ -86,13 +77,12 @@ static func _merge_runs(runs: Array) -> Array:
 	return groups
 
 
-static func _build_group(grid: Dictionary, raw: Dictionary, preferred: Array[Vector2i]) -> MatchGroup:
+static func _build_group(grid: Dictionary, raw: Dictionary) -> MatchGroup:
 	var group := MatchGroup.new()
 	for cell: Vector2i in raw.cell_set.keys():
 		group.cells.append(cell)
 	var first_run: Run = raw.runs[0]
-	var first_tile: TileState = grid[first_run.cells[0]]
-	group.type = first_tile.type
+	group.type = grid[first_run.cells[0]].type
 
 	var has_h := false
 	var has_v := false
@@ -106,25 +96,12 @@ static func _build_group(grid: Dictionary, raw: Dictionary, preferred: Array[Vec
 		else:
 			has_v = true
 	group.has_intersection = has_h and has_v
-
-	if group.max_run >= 5:
-		group.special = TileTypes.Special.TRANSFORM
-	elif group.has_intersection:
-		group.special = TileTypes.Special.BOMB
-	elif group.max_run == 4:
-		# Candy-Crush convention: horizontal match-4 sweeps the column, vertical sweeps the row.
-		group.special = TileTypes.Special.SWEEP_V if longest.horizontal else TileTypes.Special.SWEEP_H
-
-	if group.special != TileTypes.Special.NONE:
-		group.special_cell = _pick_special_cell(raw, longest, preferred)
+	group.center = _pick_center(raw, longest)
 	return group
 
 
-static func _pick_special_cell(raw: Dictionary, longest: Run, preferred: Array[Vector2i]) -> Vector2i:
-	for cell in preferred:
-		if raw.cell_set.has(cell):
-			return cell
-	# For L/T shapes prefer the intersection cell.
+static func _pick_center(raw: Dictionary, longest: Run) -> Vector2i:
+	# For L/T shapes the intersection cell (shared by two runs) is the center.
 	if raw.runs.size() > 1:
 		var seen := {}
 		for run: Run in raw.runs:

@@ -7,12 +7,17 @@ extends RefCounted
 enum Owner { PLAYER, ENEMY }
 enum Outcome { ONGOING, PLAYER_WON, ENEMY_WON }
 
+const MAX_BONUS_PER_SEQUENCE := 2 # SPEC: at most +2 extra moves per turn
+
 var player: CombatantState
 var enemy: CombatantState
 var turn_owner: int = Owner.PLAYER
 var turn_number: int = 1
 var outcome: int = Outcome.ONGOING
 var rng := RandomNumberGenerator.new()
+
+var _bonus_moves: int = 0 # extra moves still owed to the current mover
+var _bonus_granted: int = 0 # total granted this turn sequence (caps the bonus)
 
 
 func setup(player_: CombatantState, enemy_: CombatantState, seed_value: int = 0) -> void:
@@ -22,6 +27,8 @@ func setup(player_: CombatantState, enemy_: CombatantState, seed_value: int = 0)
 	turn_owner = Owner.PLAYER
 	turn_number = 1
 	outcome = Outcome.ONGOING
+	_bonus_moves = 0
+	_bonus_granted = 0
 
 
 func mover() -> CombatantState:
@@ -64,17 +71,30 @@ func apply_support_wave(counts: Dictionary) -> Array[Dictionary]:
 	return EffectResolver.apply_support(counts, mover())
 
 
-## End-of-move bookkeeping: the swap poison proc, then pass the turn
-## (unless an extra turn was earned or the battle ended). Attack and
-## support were already applied per wave during the animation.
+## End-of-move bookkeeping: the swap poison proc, then either keep the turn
+## (the mover owes an extra move) or pass it. Extra moves are capped at
+## MAX_BONUS_PER_SEQUENCE per turn sequence even if cascades grant more.
 func apply_turn_end(result: MoveResult) -> Array[Dictionary]:
 	if outcome != Outcome.ONGOING:
 		return []
 	var effects := _proc_swap_statuses(mover())
 	_check_outcome()
-	if outcome == Outcome.ONGOING and not result.extra_turn:
+	if outcome != Outcome.ONGOING:
+		return effects
+	var room := MAX_BONUS_PER_SEQUENCE - _bonus_granted
+	var grant := clampi(result.extra_turns, 0, room)
+	_bonus_granted += grant
+	_bonus_moves += grant
+	if _bonus_moves > 0:
+		_bonus_moves -= 1 # mover takes one of the owed extra moves; keep the turn
+	else:
 		pass_turn()
 	return effects
+
+
+## Whether the current mover is taking an earned extra move (for the UI).
+func has_pending_bonus() -> bool:
+	return _bonus_moves > 0 or _bonus_granted > 0
 
 
 ## Convenience for non-animated paths/tests: support for the whole move
@@ -177,6 +197,8 @@ func choose_enemy_move(grid: Dictionary) -> Dictionary:
 
 func pass_turn() -> void:
 	_tick_statuses(mover())
+	_bonus_moves = 0 # a new sequence begins for the next mover
+	_bonus_granted = 0
 	turn_owner = Owner.ENEMY if turn_owner == Owner.PLAYER else Owner.PLAYER
 	if turn_owner == Owner.PLAYER:
 		turn_number += 1

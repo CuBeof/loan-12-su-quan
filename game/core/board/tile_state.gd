@@ -1,24 +1,27 @@
 class_name TileState
 extends RefCounted
-## Logical state of a single tile on the board. No visuals, no node.
+## Logical state of a single tile. No visuals, no node. An "enhanced" tile
+## is a random, more valuable gem (its match value counts double).
 
 static var _next_id: int = 1
 
 var id: int
 var type: int
-var special: int = TileTypes.Special.NONE
-# Candy-Crush wrapped behavior: a primed bomb already blasted once,
-# survives the clear, falls, then detonates again where it lands.
-var detonating: bool = false
+var enhanced: bool = false
 
 
-static func make(type_: int, special_: int = TileTypes.Special.NONE) -> TileState:
+static func make(type_: int, enhanced_: bool = false) -> TileState:
 	var tile := TileState.new()
 	tile.id = _next_id
 	_next_id += 1
 	tile.type = type_
-	tile.special = special_
+	tile.enhanced = enhanced_
 	return tile
+
+
+## How many "tiles" this counts as when cleared (enhanced = double).
+func value() -> int:
+	return 2 if enhanced else 1
 
 
 ## Field-for-field copy (keeps id) for board cloning during AI simulation.
@@ -26,6 +29,5 @@ func clone() -> TileState:
 	var tile := TileState.new()
 	tile.id = id
 	tile.type = type
-	tile.special = special
-	tile.detonating = detonating
+	tile.enhanced = enhanced
 	return tile

@@ -69,18 +69,18 @@ func test_heal_is_worthless_at_full_hp() -> void:
 	check(attack_score > heal_score, "at full HP even a healer takes the attack")
 
 
-func test_extra_turn_and_special_bonuses_count() -> void:
+func test_extra_turn_and_combo_bonuses_count() -> void:
 	var profile := _aggressive()
 	profile.extra_turn_bonus = 6.0
 	profile.special_bonus = 4.0
 	var mover := CombatantState.make(100, 5, 4, 5, 50)
 	var plain := _result({TY.GOLD: 3})
 	var fancy := _result({TY.GOLD: 3})
-	fancy.extra_turn = true
-	fancy.add(BoardEvent.Kind.SPECIAL_CREATED, {})
+	fancy.extra_turns = 1 # +6
+	fancy.max_combo = 2 # (2-1) * 4 = +4
 	var gain := AIController.score_move(fancy, mover, profile, false) \
 			- AIController.score_move(plain, mover, profile, false)
-	check_eq(gain, 10.0, "extra turn (6) + one special (4) must add 10 to the score")
+	check_eq(gain, 10.0, "extra turn (6) + combo bonus (4) must add 10 to the score")
 
 
 func test_energy_only_valued_when_skills_and_room() -> void:

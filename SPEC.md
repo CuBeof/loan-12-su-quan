@@ -9,18 +9,14 @@
 - Bàn cờ kích thước tối đa 8x8, có thể thay đổi hình dạng và kích thước tùy vào màn chơi
 - 5 loại tiles: tấn công, máu, tiền, năng lượng và kinh nghiệm.
 - Người chơi và máy luân phiên di chuyển tile trên bàn cờ chung, ghép quân để chiếm lợi thế hoặc phá nước đi tiếp theo của đối phương
-- Cơ chế ghép và viên đặc biệt theo **chuẩn Candy Crush** (đã chốt 2026-06-12):
-  - **Ghép 4 thẳng**: ăn 4 viên, tạo **viên quét** cùng loại — ghép ngang tạo quét dọc, ghép dọc tạo quét ngang. Khi kích hoạt, viên quét xóa toàn bộ hàng/cột của nó.
-  - **Ghép chữ L/T**: ăn các viên, tạo **viên nổ** cùng loại. Viên nổ kích hoạt nổ 3x3 **hai lần**: nổ lần đầu, sống sót, rơi xuống theo trọng lực rồi nổ lần hai tại vị trí đáp.
-  - **Ghép 5 thẳng**: ăn 5 viên, chỉ số mỗi viên tăng x lần, tạo **viên biến đổi**. Ghép viên biến đổi với viên thường sẽ ăn toàn bộ viên cùng loại trên bàn cờ, đồng thời có xác suất rơi ra đồ.
-  - **Biến đổi + quét**: biến tất cả viên cùng loại thành viên quét với chiều ngẫu nhiên rồi kích hoạt toàn bộ.
-  - **Biến đổi + nổ**: biến tất cả viên cùng loại thành viên nổ rồi kích hoạt toàn bộ.
-  - **Biến đổi + biến đổi**: xóa toàn bộ bàn cờ.
-  - **Biến đổi trúng vụ nổ/quét gián tiếp**: tự kích hoạt, ăn toàn bộ một loại viên ngẫu nhiên.
-  - **Nổ + nổ**: thêm lượt, nổ 5x5 hai đợt (đợt hai sau khi viên mới rơi xuống), chỉ số vụ nổ tăng x lần.
-  - **Nổ + quét**: chữ thập lớn — xóa 3 hàng + 3 cột quanh điểm ghép.
-  - **Quét + quét**: chữ thập — xóa 1 hàng + 1 cột.
-- Thêm lượt đi khi ghép được một hàng/cột thẳng nhiều hơn 3 viên (hình L/T 3+3 không tính) hoặc khi ghép nổ + nổ.
+- Cơ chế ghép (cập nhật 2026-06-15):
+  - **Ghép 3**: ăn 3 viên, không hiệu ứng thêm.
+  - **Ghép 4 thẳng**: ăn 4 viên + **thêm 1 lượt đi**.
+  - **Ghép 5 thẳng**: ăn 5 viên + **thêm 1 lượt đi** + **phá huỷ 3 viên bất kỳ trên bàn cờ** (hiệu ứng sét).
+  - **Ghép chữ L/T**: ăn các viên + **phá huỷ 3 viên ngẫu nhiên xung quanh vị trí match** (bán kính 2, hiệu ứng sét). Không thêm lượt.
+- **Viên cường hoá**: mỗi loại ngọc có phiên bản cường hoá, sinh ngẫu nhiên (khi refill/khởi tạo). Khi ăn, viên cường hoá tính **gấp đôi** giá trị viên thường (hiển thị viền sáng + sparkle).
+- **Combo**: sau mỗi lần refill mà vẫn có match (cascade), combo tăng 1 (combo bắt đầu từ 1 cho match từ swap). **Giá trị của mỗi đợt ăn được nhân với combo** của đợt đó.
+- **Giới hạn thêm lượt**: tối đa **+2 lượt** trong một lượt đi của người chơi — dù cascade vô tình tạo nhiều match-4/5 liên tiếp cũng chỉ cộng tối đa 2.
 - Swap không tạo được match nào (nước đi hỏng) sẽ bị hoàn về vị trí cũ và bị tính là đối phương tấn công với sát thương tương đương 2 viên tấn công.
 - **Giáp**: giảm sát thương phẳng mỗi đòn; một đòn khác 0 luôn gây tối thiểu 1 sát thương (không thể bất tử nhờ giáp). **Xuyên giáp** trừ trực tiếp vào giáp đối phương trước khi tính. Nguồn giáp (mỗi nguồn là một modifier có vòng đời riêng):
   - Chỉ số của nhân vật, thay đổi theo loại nhân vật và level (vĩnh viễn)

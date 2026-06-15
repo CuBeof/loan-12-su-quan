@@ -217,21 +217,23 @@ func _play_events(events: Array[BoardEvent]) -> void:
 			BoardEvent.Kind.SWAP_REJECTED:
 				AudioManager.play_sfx(&"tile_reject")
 				await _anim_swap(event.data.a, event.data.b)
-			BoardEvent.Kind.BOMB_PRIMED:
-				AudioManager.play_sfx(&"bomb_primed")
-				await _anim_bomb_primed(event.data.cells)
 			BoardEvent.Kind.CLEARED:
+				var combo := int(event.data.get("combo", 1))
+				if combo >= 2:
+					_show_combo(combo)
+				if bool(event.data.get("extra_turn", false)):
+					AudioManager.play_sfx(&"extra_turn")
+					_show_extra_turn()
+				var lightning: Array = event.data.get("lightning", [])
+				if not lightning.is_empty():
+					AudioManager.play_sfx(&"lightning")
+					_play_lightning(lightning)
 				var counts: Dictionary = event.data.get("counts", {})
-				_play_activations(event.data.get("activations", []))
 				if not counts.is_empty() and wave_vfx_handler.is_valid():
 					# VFX fly + attack damage lands before the tiles clear/refill.
 					await wave_vfx_handler.call(counts, _cells_by_type(event.data.cells))
 				AudioManager.play_sfx(&"tile_match")
 				await _anim_clear(event.data.cells)
-			BoardEvent.Kind.SPECIAL_CREATED:
-				await _anim_special_created(event.data.cell, event.data.type, event.data.special)
-			BoardEvent.Kind.TRANSFORMED:
-				await _anim_transformed(event.data.changes)
 			BoardEvent.Kind.GRAVITY:
 				await _anim_gravity(event.data.falls, event.data.spawns)
 				AudioManager.play_sfx(&"tile_land")
@@ -284,38 +286,30 @@ func _anim_clear(cells: Array[Vector2i]) -> void:
 		view.queue_free()
 
 
-## Plays the beam/ring for each special tile that activated this wave.
-func _play_activations(activations: Array) -> void:
-	for raw in activations:
-		var data: Dictionary = raw
-		var cell: Vector2i = data.get("cell", Vector2i.ZERO)
-		match int(data.get("kind", -1)):
-			TileTypes.Special.SWEEP_H:
-				AudioManager.play_sfx(&"sweep")
-				var y := _cell_to_pos(cell).y
-				var beam := SweepBeam.new()
-				add_child(beam)
-				beam.sweep(Vector2(_origin.x, y), Vector2(_origin.x + logic.size.x * _cell_px, y),
-						Color(0.95, 0.95, 1.0), _cell_px * 0.5)
-			TileTypes.Special.SWEEP_V:
-				AudioManager.play_sfx(&"sweep")
-				var x := _cell_to_pos(cell).x
-				var beam := SweepBeam.new()
-				add_child(beam)
-				beam.sweep(Vector2(x, _origin.y), Vector2(x, _origin.y + logic.size.y * _cell_px),
-						Color(0.95, 0.95, 1.0), _cell_px * 0.5)
-			TileTypes.Special.BOMB:
-				AudioManager.play_sfx(&"bomb")
-				var ring := BlastRing.new()
-				add_child(ring)
-				ring.position = _cell_to_pos(cell)
-				ring.blast(Color(1.0, 0.6, 0.2), _cell_px * 1.6)
-			TileTypes.Special.TRANSFORM:
-				AudioManager.play_sfx(&"bomb")
-				var ring := BlastRing.new()
-				add_child(ring)
-				ring.position = _cell_to_pos(cell)
-				ring.blast(Color(0.85, 0.5, 1.0), _cell_px * 2.0)
+## Lightning strikes on the random tiles destroyed by a match-5 / L-T.
+func _play_lightning(cells: Array) -> void:
+	for cell: Vector2i in cells:
+		var bolt := LightningBolt.new()
+		add_child(bolt)
+		bolt.strike(_cell_to_pos(cell))
+
+
+## "Combo xN" flourish centered on the board.
+func _show_combo(combo: int) -> void:
+	var popup := ComboPopup.new()
+	add_child(popup)
+	popup.size = Vector2(size.x, 70.0)
+	popup.position = Vector2(0.0, size.y * 0.32)
+	popup.show_combo(combo)
+
+
+## "Extra turn!" banner centered on the board.
+func _show_extra_turn() -> void:
+	var banner := ExtraTurnBanner.new()
+	add_child(banner)
+	banner.size = Vector2(size.x, 56.0)
+	banner.position = Vector2(0.0, size.y * 0.5)
+	banner.announce(tr(&"UI_EXTRA_TURN"))
 
 
 ## A colored spark burst where a tile clears (juice for every match).
@@ -329,40 +323,6 @@ func _spawn_clear_burst(view: TileView) -> void:
 	add_child(burst)
 	burst.position = view.position
 	burst.burst(color, _cell_px)
-
-
-func _anim_bomb_primed(cells: Array[Vector2i]) -> void:
-	var views: Array[TileView] = []
-	for cell in cells:
-		var view: TileView = _tiles.get(cell)
-		if view != null:
-			views.append(view)
-	if views.is_empty():
-		return
-	var grow := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	for view in views:
-		grow.tween_property(view, "scale", Vector2.ONE * 1.25, _dur(0.09))
-	await grow.finished
-	var shrink := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	for view in views:
-		shrink.tween_property(view, "scale", Vector2.ONE, _dur(0.09))
-	await shrink.finished
-
-
-func _anim_special_created(cell: Vector2i, type: int, special: int) -> void:
-	var view := _create_tile_view(cell, type, special)
-	view.scale = Vector2.ZERO
-	var tween := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(view, "scale", Vector2.ONE, _dur(POP_TIME))
-	await tween.finished
-
-
-func _anim_transformed(changes: Array[Dictionary]) -> void:
-	for change in changes:
-		var view: TileView = _tiles.get(change.cell)
-		if view != null:
-			view.set_special(change.special)
-	await get_tree().create_timer(_dur(POP_TIME)).timeout
 
 
 func _anim_gravity(falls: Array[Dictionary], spawns: Array[Dictionary]) -> void:
@@ -385,7 +345,7 @@ func _anim_gravity(falls: Array[Dictionary], spawns: Array[Dictionary]) -> void:
 		var cell: Vector2i = spawn.cell
 		var index := int(spawn_index_per_column.get(cell.x, 0))
 		spawn_index_per_column[cell.x] = index + 1
-		var view := _create_tile_view(cell, spawn.type, spawn.special)
+		var view := _create_tile_view(cell, spawn.type, spawn.enhanced)
 		# Spawn above the board: clip_contents keeps the gem invisible
 		# until it enters the grid.
 		view.position = _cell_to_pos(Vector2i(cell.x, -1 - index))
@@ -436,15 +396,15 @@ func _rebuild_from_layout(layout: Dictionary) -> void:
 	_tiles.clear()
 	for cell: Vector2i in layout.keys():
 		var entry: Dictionary = layout[cell]
-		_create_tile_view(cell, entry.type, entry.special)
+		_create_tile_view(cell, entry.type, entry.enhanced)
 
 
-func _create_tile_view(cell: Vector2i, type: int, special: int) -> TileView:
+func _create_tile_view(cell: Vector2i, type: int, enhanced: bool) -> TileView:
 	var view := TileView.new()
 	add_child(view)
 	view.position = _cell_to_pos(cell)
 	var def: TileDefinition = catalog.get_def(type) if catalog != null else null
-	view.setup(type, special, def, _cell_px)
+	view.setup(type, enhanced, def, _cell_px)
 	_tiles[cell] = view
 	return view
 

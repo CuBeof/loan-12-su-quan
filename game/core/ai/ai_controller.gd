@@ -46,18 +46,16 @@ static func choose_action(board: BoardLogic, mover: CombatantState, opponent: Co
 	return {"type": "move", "a": best.a, "b": best.b}
 
 
-## Value of a resolved move to `mover`: sum of cleared tiles times their
-## profile weight, plus bonuses for extra turns and created specials.
+## Value of a resolved move to `mover`: sum of cleared value times the
+## profile weight, plus bonuses for extra turns and high combos.
 static func score_move(result: MoveResult, mover: CombatantState, profile: AIProfile,
 		values_energy: bool) -> float:
 	var score := 0.0
 	for type: int in result.cleared_counts:
 		score += int(result.cleared_counts[type]) * _tile_weight(type, mover, profile, values_energy)
-	if result.extra_turn:
-		score += profile.extra_turn_bonus
-	for event in result.events:
-		if event.kind == BoardEvent.Kind.SPECIAL_CREATED:
-			score += profile.special_bonus
+	score += result.extra_turns * profile.extra_turn_bonus
+	if result.max_combo > 1:
+		score += (result.max_combo - 1) * profile.special_bonus
 	return score
 
 

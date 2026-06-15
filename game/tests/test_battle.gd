@@ -19,11 +19,11 @@ func _battle() -> TurnManager:
 	return turns
 
 
-func _move_with(counts: Dictionary, extra_turn := false) -> MoveResult:
+func _move_with(counts: Dictionary, extra_turns := 0) -> MoveResult:
 	var result := MoveResult.new()
 	result.valid = true
 	result.cleared_counts = counts
-	result.extra_turn = extra_turn
+	result.extra_turns = extra_turns
 	return result
 
 
@@ -68,8 +68,20 @@ func test_turn_switches_and_round_counts() -> void:
 
 func test_extra_turn_keeps_owner() -> void:
 	var turns := _battle()
-	turns.apply_move(_move_with({TY.GOLD: 4}, true))
+	turns.apply_move(_move_with({TY.GOLD: 4}, 1))
 	check_eq(turns.turn_owner, TurnManager.Owner.PLAYER, "extra turn must keep the mover's turn")
+
+
+func test_extra_turns_capped_at_two_per_sequence() -> void:
+	var turns := _battle()
+	# Five consecutive moves each granting an extra turn: only 2 should
+	# actually be honored before the turn passes.
+	turns.apply_move(_move_with({TY.GOLD: 1}, 1)) # base, +1 -> keep
+	check_eq(turns.turn_owner, TurnManager.Owner.PLAYER, "first extra turn keeps the turn")
+	turns.apply_move(_move_with({TY.GOLD: 1}, 1)) # +1 (granted 2) -> keep
+	check_eq(turns.turn_owner, TurnManager.Owner.PLAYER, "second extra turn keeps the turn")
+	turns.apply_move(_move_with({TY.GOLD: 1}, 2)) # cap reached -> pass
+	check_eq(turns.turn_owner, TurnManager.Owner.ENEMY, "the +2 cap is reached, turn passes despite more bonuses")
 
 
 func test_enemy_move_applies_effects_to_enemy() -> void:

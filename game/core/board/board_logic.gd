@@ -1,21 +1,29 @@
 class_name BoardLogic
 extends RefCounted
 ## The whole match-3 board as pure logic: grid state, move validation,
-## match resolution, special-tile combos, gravity and refill.
-## No nodes, no assets — testable headless and simulatable by the AI.
+## match resolution, gravity and refill. No nodes, no assets — testable
+## headless and simulatable by the AI.
+##
+## Match rules (per design):
+##   match-4        -> +1 extra turn
+##   match-5+       -> +1 extra turn + destroy 3 random tiles anywhere
+##   L/T shape      -> destroy 3 random tiles around the match center
+## Enhanced tiles (random spawn) count double when cleared. Each cascade
+## wave after a refill raises the combo, and a wave's cleared value is
+## multiplied by its combo. Extra turns are capped per move (MoveResult).
 
 const MAX_CASCADES := 50
-# SPEC: a rejected swap counts as an enemy attack worth this many attack tiles.
-const INVALID_SWAP_PENALTY_ATTACK_TILES := 2
+const INVALID_SWAP_PENALTY_ATTACK_TILES := 2 # rejected swap = enemy attack
+const ENHANCED_SPAWN_CHANCE := 0.08 # chance a spawned tile is enhanced
+const DESTROY_COUNT := 3 # tiles destroyed by match-5 / L-T
+const AROUND_RADIUS := 2 # L/T destroys within this Chebyshev radius of center
 
 var size: Vector2i = Vector2i(8, 8)
 var valid_cells: Array[Vector2i] = [] # board shape (holes excluded), ordered y then x
 var grid: Dictionary = {} # Vector2i -> TileState
 var rng := RandomNumberGenerator.new()
 var refill_enabled: bool = true # tests disable to keep boards deterministic
-
-var _pending_bombs: Array[TileState] = [] # primed bombs awaiting their second blast
-var _pending_blasts: Array[Dictionary] = [] # delayed area blasts: {center, radius}
+var enhanced_enabled: bool = true # tests disable for deterministic counts
 
 
 func init_shape(board_size: Vector2i, blocked: Array[Vector2i] = []) -> void:
@@ -44,19 +52,8 @@ func try_move(a: Vector2i, b: Vector2i) -> MoveResult:
 	if not grid.has(a) or not grid.has(b) or not _adjacent(a, b):
 		return result
 
-	var tile_a: TileState = grid[a]
-	var tile_b: TileState = grid[b]
-	if MoveGenerator.is_special_combo(tile_a, tile_b):
-		result.valid = true
-		result.add(BoardEvent.Kind.SWAP, {"a": a, "b": b})
-		_execute_combo(a, b, result)
-		_settle(result)
-		_ensure_moves(result)
-		return result
-
 	_swap_tiles(a, b)
-	var preferred: Array[Vector2i] = [b, a]
-	var groups := MatchFinder.find_groups(grid, preferred)
+	var groups := MatchFinder.find_groups(grid)
 	if groups.is_empty():
 		_swap_tiles(a, b)
 		result.add(BoardEvent.Kind.SWAP, {"a": a, "b": b})
@@ -66,27 +63,68 @@ func try_move(a: Vector2i, b: Vector2i) -> MoveResult:
 
 	result.valid = true
 	result.add(BoardEvent.Kind.SWAP, {"a": a, "b": b})
-	_clear_groups(groups, result)
-	_settle(result)
+	_resolve(result, groups)
 	_ensure_moves(result)
 	return result
 
 
-## Gravity, delayed bomb blasts and cascade matches, until the board is stable.
-func _settle(result: MoveResult) -> void:
-	apply_gravity(result)
+## Resolves the first match and every cascade, raising the combo each wave.
+func _resolve(result: MoveResult, first_groups: Array) -> void:
+	var combo := 0
+	var groups := first_groups
 	var guard := 0
-	while guard < MAX_CASCADES:
+	while not groups.is_empty() and guard < MAX_CASCADES:
 		guard += 1
-		if not _pending_bombs.is_empty() or not _pending_blasts.is_empty():
-			_detonate_pending(result)
-			apply_gravity(result)
-			continue
-		var groups := MatchFinder.find_groups(grid)
-		if groups.is_empty():
-			break
-		_clear_groups(groups, result)
+		combo += 1
+		result.max_combo = maxi(result.max_combo, combo)
+		_resolve_wave(groups, combo, result)
 		apply_gravity(result)
+		groups = MatchFinder.find_groups(grid)
+
+
+## Clears one wave of matches, applies the per-match effects (extra turn,
+## random destruction) and tallies cleared value (enhanced x2, x combo).
+func _resolve_wave(groups: Array, combo: int, result: MoveResult) -> void:
+	var to_clear := {} # Vector2i -> true
+	var lightning: Array[Vector2i] = []
+	var grants_extra := false
+
+	for group: MatchFinder.MatchGroup in groups:
+		for cell in group.cells:
+			to_clear[cell] = true
+		if group.has_intersection:
+			# L/T: destroy 3 random tiles around the junction.
+			for cell in _random_cells_around(group.center, DESTROY_COUNT, to_clear):
+				to_clear[cell] = true
+				lightning.append(cell)
+		elif group.max_run >= 5:
+			# Match-5+: extra turn AND destroy 3 random tiles anywhere.
+			grants_extra = true
+			for cell in _random_cells_anywhere(DESTROY_COUNT, to_clear):
+				to_clear[cell] = true
+				lightning.append(cell)
+		elif group.max_run == 4:
+			grants_extra = true
+
+	if grants_extra:
+		result.grant_extra_turn()
+
+	var counts := {}
+	var cleared: Array[Vector2i] = []
+	for cell: Vector2i in to_clear.keys():
+		var tile: TileState = grid[cell]
+		var amount := tile.value() * combo
+		result.tally(tile.type, amount)
+		counts[tile.type] = int(counts.get(tile.type, 0)) + amount
+		cleared.append(cell)
+		grid.erase(cell)
+	result.add(BoardEvent.Kind.CLEARED, {
+		"cells": cleared,
+		"counts": counts,
+		"combo": combo,
+		"lightning": lightning,
+		"extra_turn": grants_extra,
+	})
 
 
 func apply_gravity(result: MoveResult) -> void:
@@ -111,16 +149,16 @@ func apply_gravity(result: MoveResult) -> void:
 		if refill_enabled:
 			for i in range(write, column.size()):
 				var cell := column[i]
-				var tile := TileState.make(rng.randi_range(0, TileTypes.TYPE_COUNT - 1))
+				var enhanced := enhanced_enabled and rng.randf() < ENHANCED_SPAWN_CHANCE
+				var tile := TileState.make(rng.randi_range(0, TileTypes.TYPE_COUNT - 1), enhanced)
 				grid[cell] = tile
-				spawns.append({"cell": cell, "type": tile.type, "special": tile.special})
+				spawns.append({"cell": cell, "type": tile.type, "enhanced": tile.enhanced})
 	if not falls.is_empty() or not spawns.is_empty():
 		result.add(BoardEvent.Kind.GRAVITY, {"falls": falls, "spawns": spawns})
 
 
-## Destroys arbitrary cells (skill blasts). Specials caught in the blast
-## chain as usual; the board settles and reshuffles if needed. The caller
-## decides what (if anything) the cleared counts are worth.
+## Destroys arbitrary cells (skill blasts) and settles the board. The
+## caller decides what the cleared counts are worth.
 func blast_cells(cells: Array[Vector2i]) -> MoveResult:
 	var result := MoveResult.new()
 	var present: Array[Vector2i] = []
@@ -130,17 +168,25 @@ func blast_cells(cells: Array[Vector2i]) -> MoveResult:
 	if present.is_empty():
 		return result
 	result.valid = true
-	_clear_cells(present, result)
-	_settle(result)
+	var counts := {}
+	for cell in present:
+		var tile: TileState = grid[cell]
+		result.tally(tile.type, tile.value())
+		counts[tile.type] = int(counts.get(tile.type, 0)) + tile.value()
+		grid.erase(cell)
+	result.add(BoardEvent.Kind.CLEARED, {
+		"cells": present, "counts": counts, "combo": 1, "lightning": [], "extra_turn": false})
+	apply_gravity(result)
+	var groups := MatchFinder.find_groups(grid)
+	if not groups.is_empty():
+		_resolve(result, groups)
 	_ensure_moves(result)
 	return result
 
 
-## Returns a hint {a, b, cells} highlighting just the two tiles to swap,
-## or {} only in the impossible case of a dead board (the board is always
-## kept solvable by reshuffling). It returns the FIRST available move, not
-## the best one — the hint exists to unstick the player, not to play for
-## them — which also keeps it cheap.
+## Returns a hint {a, b, cells} highlighting the two tiles to swap, or {}
+## only on a dead board (kept solvable by reshuffling). Returns the FIRST
+## legal move — the hint exists to unstick the player, not to play for them.
 func find_hint() -> Dictionary:
 	var move := MoveGenerator.find_first_move(grid)
 	if move.is_empty():
@@ -153,18 +199,18 @@ func snapshot() -> Dictionary:
 	var layout := {}
 	for cell: Vector2i in grid.keys():
 		var tile: TileState = grid[cell]
-		layout[cell] = {"type": tile.type, "special": tile.special}
+		layout[cell] = {"type": tile.type, "enhanced": tile.enhanced}
 	return layout
 
 
 ## Deep copy for AI lookahead: the AI simulates try_move() on a clone so
-## the real board (and its RNG) is untouched. Cloned board uses its own
-## RNG seeded from this one, so a simulation is repeatable.
+## the real board (and its RNG) is untouched.
 func clone() -> BoardLogic:
 	var copy := BoardLogic.new()
 	copy.size = size
 	copy.valid_cells = valid_cells.duplicate()
 	copy.refill_enabled = refill_enabled
+	copy.enhanced_enabled = enhanced_enabled
 	copy.rng = RandomNumberGenerator.new()
 	copy.rng.seed = rng.seed
 	copy.rng.state = rng.state
@@ -184,168 +230,35 @@ func _swap_tiles(a: Vector2i, b: Vector2i) -> void:
 	grid[b] = tmp
 
 
-## Second blasts of primed bombs (at their post-fall positions) and any
-## queued delayed area blasts (bomb + bomb combo).
-func _detonate_pending(result: MoveResult) -> void:
-	var initial: Array[Vector2i] = []
-	var activations: Array[Dictionary] = []
-	for tile in _pending_bombs:
-		var cell := _find_tile_cell(tile)
-		if cell.x >= 0:
-			initial.append(cell)
-	_pending_bombs.clear()
-	for blast in _pending_blasts:
-		var center: Vector2i = blast.center
-		var radius: int = blast.radius
-		activations.append({"kind": TileTypes.Special.BOMB, "cell": center})
-		for cell: Vector2i in grid.keys():
-			if absi(cell.x - center.x) <= radius and absi(cell.y - center.y) <= radius:
-				initial.append(cell)
-	_pending_blasts.clear()
-	if not initial.is_empty():
-		_clear_cells(initial, result, activations)
-
-
-func _find_tile_cell(tile: TileState) -> Vector2i:
+## Picks up to `count` random occupied cells within AROUND_RADIUS of center
+## that are not already marked, for an L/T strike.
+func _random_cells_around(center: Vector2i, count: int, exclude: Dictionary) -> Array[Vector2i]:
+	var candidates: Array[Vector2i] = []
 	for cell: Vector2i in grid.keys():
-		if grid[cell] == tile:
-			return cell
-	return Vector2i(-1, -1)
+		if exclude.has(cell):
+			continue
+		if absi(cell.x - center.x) <= AROUND_RADIUS and absi(cell.y - center.y) <= AROUND_RADIUS:
+			candidates.append(cell)
+	return _pick_random(candidates, count)
 
 
-func _clear_groups(groups: Array, result: MoveResult) -> void:
-	var initial: Array[Vector2i] = []
-	var specials: Array[Dictionary] = []
-	for group: MatchFinder.MatchGroup in groups:
-		if group.max_run > 3:
-			result.extra_turn = true
-		if group.special != TileTypes.Special.NONE:
-			specials.append({
-				"cell": group.special_cell,
-				"type": group.type,
-				"special": group.special,
-				"cells": group.cells,
-			})
-		initial.append_array(group.cells)
-	_clear_cells(initial, result)
-	for entry in specials:
-		var cell: Vector2i = entry.cell
-		if grid.has(cell):
-			# Occupied by a primed bomb that survived the clear: fall back
-			# to another cell of the match that did get cleared.
-			cell = Vector2i(-1, -1)
-			for alt: Vector2i in entry.cells:
-				if not grid.has(alt):
-					cell = alt
-					break
-			if cell.x < 0:
-				continue
-		grid[cell] = TileState.make(entry.type, entry.special)
-		result.add(BoardEvent.Kind.SPECIAL_CREATED, {"cell": cell, "type": entry.type, "special": entry.special})
+## Picks up to `count` random occupied cells anywhere not already marked.
+func _random_cells_anywhere(count: int, exclude: Dictionary) -> Array[Vector2i]:
+	var candidates: Array[Vector2i] = []
+	for cell: Vector2i in grid.keys():
+		if not exclude.has(cell):
+			candidates.append(cell)
+	return _pick_random(candidates, count)
 
 
-func _clear_cells(initial: Array[Vector2i], result: MoveResult, extra_activations: Array = []) -> void:
-	var outcome := SpecialResolver.expand_clears(grid, initial, rng)
-	var primed: Array[Vector2i] = outcome.primed
-	if not primed.is_empty():
-		for cell in primed:
-			_pending_bombs.append(grid[cell])
-		result.add(BoardEvent.Kind.BOMB_PRIMED, {"cells": primed})
-	var cleared: Array[Vector2i] = outcome.cleared
-	var counts := {}
-	for cell in cleared:
-		var tile: TileState = grid[cell]
-		result.tally(tile.type)
-		counts[tile.type] = int(counts.get(tile.type, 0)) + 1
-		grid.erase(cell)
-	var activations: Array = extra_activations.duplicate()
-	activations.append_array(outcome.activations)
-	result.add(BoardEvent.Kind.CLEARED, {"cells": cleared, "counts": counts, "activations": activations})
-
-
-## Swap combos between special tiles (and TRANSFORM with anything).
-## The grid is intentionally NOT swapped: every combo consumes both cells,
-## so the visual swap the view plays stays consistent.
-func _execute_combo(a: Vector2i, b: Vector2i, result: MoveResult) -> void:
-	var tile_a: TileState = grid[a]
-	var tile_b: TileState = grid[b]
-	var sweeps: Array[int] = [TileTypes.Special.SWEEP_H, TileTypes.Special.SWEEP_V]
-
-	if tile_a.special == TileTypes.Special.TRANSFORM or tile_b.special == TileTypes.Special.TRANSFORM:
-		var t_cell := a if tile_a.special == TileTypes.Special.TRANSFORM else b
-		var o_cell := b if t_cell == a else a
-		var other: TileState = grid[o_cell]
-		# The transform tile is consumed by the combo itself; neutralize it
-		# so expand_clears doesn't trigger a passive random-type zap on top.
-		var t_tile: TileState = grid[t_cell]
-		t_tile.special = TileTypes.Special.NONE
-		match other.special:
-			TileTypes.Special.TRANSFORM:
-				# Candy Crush: color bomb + color bomb clears the whole board.
-				other.special = TileTypes.Special.NONE
-				var all_cells: Array[Vector2i] = []
-				for cell: Vector2i in grid.keys():
-					all_cells.append(cell)
-				_clear_cells(all_cells, result)
-			TileTypes.Special.NONE:
-				var cells: Array[Vector2i] = [t_cell]
-				for cell: Vector2i in grid.keys():
-					var tile: TileState = grid[cell]
-					if tile.type == other.type and tile.special != TileTypes.Special.TRANSFORM:
-						cells.append(cell)
-				_clear_cells(cells, result)
-			_:
-				# TRANSFORM + BOMB/SWEEP: convert all tiles of that type, then detonate.
-				var changes: Array[Dictionary] = []
-				var detonate: Array[Vector2i] = [t_cell, o_cell]
-				for cell: Vector2i in grid.keys():
-					var tile: TileState = grid[cell]
-					if cell != o_cell and tile.type == other.type and tile.special == TileTypes.Special.NONE:
-						var new_special := other.special
-						if other.special in sweeps:
-							new_special = sweeps[rng.randi_range(0, 1)] # random orientation per SPEC
-						tile.special = new_special
-						changes.append({"cell": cell, "special": new_special})
-						detonate.append(cell)
-				if not changes.is_empty():
-					result.add(BoardEvent.Kind.TRANSFORMED, {"changes": changes})
-				_clear_cells(detonate, result)
-		return
-
-	var both_bomb := tile_a.special == TileTypes.Special.BOMB and tile_b.special == TileTypes.Special.BOMB
-	var both_sweep := tile_a.special in sweeps and tile_b.special in sweeps
-	# Consume the source specials so expand_clears applies the combo area
-	# instead of each tile's default activation.
-	tile_a.special = TileTypes.Special.NONE
-	tile_b.special = TileTypes.Special.NONE
-
-	var cells: Array[Vector2i] = []
-	var activations: Array[Dictionary] = []
-	if both_bomb:
-		# Candy Crush: two big blasts (5x5, second one after refill);
-		# SPEC adds the extra turn.
-		result.extra_turn = true
-		_pending_blasts.append({"center": b, "radius": 2})
-		activations.append({"kind": TileTypes.Special.BOMB, "cell": b})
-		for cell: Vector2i in grid.keys():
-			if absi(cell.x - b.x) <= 2 and absi(cell.y - b.y) <= 2:
-				cells.append(cell)
-	elif both_sweep:
-		# Candy Crush: cross clear, one row + one column.
-		activations.append({"kind": TileTypes.Special.SWEEP_H, "cell": b})
-		activations.append({"kind": TileTypes.Special.SWEEP_V, "cell": b})
-		for cell: Vector2i in grid.keys():
-			if cell.y == b.y or cell.x == b.x:
-				cells.append(cell)
-	else:
-		# Candy Crush: bomb + sweeper = giant cross, 3 rows + 3 columns.
-		activations.append({"kind": TileTypes.Special.SWEEP_H, "cell": b})
-		activations.append({"kind": TileTypes.Special.SWEEP_V, "cell": b})
-		activations.append({"kind": TileTypes.Special.BOMB, "cell": b})
-		for cell: Vector2i in grid.keys():
-			if absi(cell.y - b.y) <= 1 or absi(cell.x - b.x) <= 1:
-				cells.append(cell)
-	_clear_cells(cells, result, activations)
+func _pick_random(candidates: Array[Vector2i], count: int) -> Array[Vector2i]:
+	var picked: Array[Vector2i] = []
+	var pool := candidates.duplicate()
+	for i in range(mini(count, pool.size())):
+		var index := rng.randi_range(0, pool.size() - 1)
+		picked.append(pool[index])
+		pool.remove_at(index)
+	return picked
 
 
 func _fill_no_match() -> void:
@@ -360,7 +273,8 @@ func _fill_no_match() -> void:
 		var up2: TileState = grid.get(cell + Vector2i.UP * 2)
 		if up1 != null and up2 != null and up1.type == up2.type:
 			banned[up1.type] = true
-		grid[cell] = TileState.make(_random_type_excluding(banned))
+		var enhanced := enhanced_enabled and rng.randf() < ENHANCED_SPAWN_CHANCE
+		grid[cell] = TileState.make(_random_type_excluding(banned), enhanced)
 
 
 func _random_type_excluding(banned: Dictionary) -> int:
@@ -371,30 +285,27 @@ func _random_type_excluding(banned: Dictionary) -> int:
 	return candidates[rng.randi_range(0, candidates.size() - 1)]
 
 
-## Reshuffles normal tiles when no move is left, keeping specials in place.
+## Reshuffles tiles when no move is left.
 func _ensure_moves(result: MoveResult) -> void:
 	if MoveGenerator.has_move(grid):
 		return
 	for attempt in range(100):
-		_shuffle_normals()
+		_shuffle_all()
 		if MatchFinder.find_groups(grid).is_empty() and MoveGenerator.has_move(grid):
 			break
 	result.add(BoardEvent.Kind.SHUFFLED, {"layout": snapshot()})
 
 
-func _shuffle_normals() -> void:
+func _shuffle_all() -> void:
 	var cells: Array[Vector2i] = []
 	var types: Array[int] = []
 	for cell: Vector2i in grid.keys():
-		var tile: TileState = grid[cell]
-		if tile.special == TileTypes.Special.NONE:
-			cells.append(cell)
-			types.append(tile.type)
+		cells.append(cell)
+		types.append(grid[cell].type)
 	for i in range(types.size() - 1, 0, -1):
 		var j := rng.randi_range(0, i)
 		var tmp := types[i]
 		types[i] = types[j]
 		types[j] = tmp
 	for i in range(cells.size()):
-		var tile: TileState = grid[cells[i]]
-		tile.type = types[i]
+		grid[cells[i]].type = types[i]

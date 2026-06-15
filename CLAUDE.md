@@ -6,7 +6,7 @@ Chỉ dẫn cho Claude Code khi làm việc trong repo này.
 
 Game **match-3 RPG offline** theo lượt (người chơi vs AI) cho **Android**, làm bằng **Godot 4.6 / GDScript**. Tên dự án: Loạn 12 Sứ Quân.
 
-- [SPEC.md](SPEC.md) — đặc tả gameplay, luật ghép, các màn hình. Là nguồn chân lý về thiết kế; khi spec và code lệch nhau, hỏi lại user. **Cơ chế ghép và viên đặc biệt theo chuẩn Candy Crush** — bảng luật đầy đủ trong mục "Cơ chế" của SPEC; mỗi dòng luật phải có unit test tương ứng.
+- [SPEC.md](SPEC.md) — đặc tả gameplay, luật ghép, các màn hình. Là nguồn chân lý về thiết kế; khi spec và code lệch nhau, hỏi lại user. **Cơ chế ghép**: match-4 = +1 lượt; match-5 = +1 lượt + phá 3 viên ngẫu nhiên; L/T = phá 3 viên quanh match; viên cường hoá (random) tính 2× giá trị; combo nhân giá trị mỗi đợt cascade; tối đa +2 lượt/lượt đi. Mỗi dòng luật phải có unit test tương ứng.
 - [PLAN.md](PLAN.md) — kế hoạch kỹ thuật, kiến trúc, lộ trình giai đoạn, ma trận viên đặc biệt.
 - `game/` — project Godot chính (toàn bộ code mới đặt ở đây).
 - `example/` — game match-3 mẫu hoàn chỉnh, **chỉ để tham khảo** cách làm tween/âm thanh/hiệu ứng. KHÔNG copy cấu hình của nó (nó dùng Forward+; dự án chính phải dùng renderer Mobile). Không sửa thư mục này.

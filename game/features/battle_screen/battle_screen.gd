@@ -130,7 +130,7 @@ func _on_move_resolved(result: MoveResult) -> void:
 	# animation; here we just do end-of-move bookkeeping (poison + turn pass).
 	var effects := _turns.apply_turn_end(result)
 	_show_effects(effects)
-	_info_label.text = tr(&"UI_EXTRA_TURN") if result.extra_turn else ""
+	_info_label.text = tr(&"UI_EXTRA_TURN") if result.extra_turns > 0 else ""
 	_refresh()
 	_continue_battle()
 

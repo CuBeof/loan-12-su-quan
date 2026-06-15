@@ -20,7 +20,7 @@ func _ready() -> void:
 func _on_move_resolved(result: MoveResult) -> void:
 	for type: int in result.cleared_counts:
 		_totals[type] = int(_totals.get(type, 0)) + int(result.cleared_counts[type])
-	if result.extra_turn:
+	if result.extra_turns > 0:
 		_info_label.text = tr(&"UI_EXTRA_TURN")
 	else:
 		_info_label.text = ""
